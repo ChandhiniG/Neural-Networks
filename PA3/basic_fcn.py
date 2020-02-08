@@ -1,4 +1,5 @@
 import torch.nn as nn
+from utils import *
 
 class FCN(nn.Module):
 
@@ -38,3 +39,13 @@ class FCN(nn.Module):
         score = self.classifier(out_decoder)                   
 
         return score  # size=(N, n_class, x.H/1, x.W/1)
+    
+    def eval(self, img_batch, target_batch):
+        # forward pass
+        target_batch = target_batch.argmax(axis=1)
+        probs_batch = self.forward(img_batch)
+        pred_batch = probs_batch.argmax(axis = 1)
+        pixel_acc = pixel_acc(pred_batch, target_batch)
+        iou_acc = iou(pred_batch, target_batch)
+        
+        return pixel_acc, iou_acc
