@@ -39,7 +39,6 @@ class FCN(nn.Module):
         encoded = self.relu(out_encoder)     
         out_decoder = self.decoder(encoded)
         score = self.classifier(out_decoder)                   
-
         return score  # size=(N, n_class, x.H/1, x.W/1)
     
     def eval(self, img_batch, target_batch):
