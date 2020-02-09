@@ -1,4 +1,6 @@
-def iou(pred, target):
+import torch
+
+def iou(pred, target,n_class):
     """
     Calulates the intersection over union between prediction and target.
     Formula--> iou for class c = number of overlapping pixels / number of pixels of in class c in both prediction and target

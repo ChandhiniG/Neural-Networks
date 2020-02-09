@@ -75,7 +75,7 @@ class FCN(nn.Module):
         target_batch = target_batch.argmax(axis=1)
         probs_batch = self.forward(img_batch)
         pred_batch = probs_batch.argmax(axis = 1)
-        pixel_acc = pixel_acc(pred_batch, target_batch)
-        iou_acc = iou(pred_batch, target_batch)
+        p_acc = pixel_acc(pred_batch, target_batch)
+        iou_acc = iou(pred_batch, target_batch,self.n_class)
         
-        return pixel_acc, iou_acc
+        return p_acc, iou_acc
