@@ -85,7 +85,7 @@ class CityScapesDataset(Dataset):
         self.data      = pd.read_csv(csv_file)
         self.means     = means
         self.n_class   = n_class
-        # Add any transformations here
+        self.transforms = transforms
 
     def __len__(self):
         return len(self.data)
@@ -93,9 +93,22 @@ class CityScapesDataset(Dataset):
     def __getitem__(self, idx):
         img_name   = self.data.iloc[idx, 0]
 
-        img = np.asarray(Image.open(img_name).convert('RGB'))
+#         img = np.asarray(Image.open(img_name).convert('RGB'))
+#         label_name = self.data.iloc[idx, 1]
+#         label      = np.asarray(Image.open(label_name))
+        
+        img = Image.open(img_name).convert('RGB') #type PIL image
         label_name = self.data.iloc[idx, 1]
-        label      = np.asarray(Image.open(label_name))
+        label      = Image.open(label_name) #type PIL image
+        
+        # Apply transformation while image is of type PIL
+        if self.transforms:
+            img = self.transforms(img)
+            label = self.transforms(label)
+        
+        # Convert image from PIL to numpy
+        img = np.asarray(img)
+        label = np.asarray(label)
 
         # reduce mean
         img = img[:, :, ::-1]  # switch to BGR
@@ -107,6 +120,8 @@ class CityScapesDataset(Dataset):
         # convert to tensor
         img = torch.from_numpy(img.copy()).float()
         label = torch.from_numpy(label.copy()).long()
+        
+        
 
         # create one-hot encoding
         h, w = label.shape
