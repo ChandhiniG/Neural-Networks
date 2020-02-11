@@ -9,16 +9,18 @@ from torch.autograd import Variable
 import time
 
 transforms_composed = transforms.Compose([
-                        transforms.RandomRotation(degrees=30),
-                        transforms.RandomVerticalFlip(p=0.5),
+                        transforms.Resize((512, 256)),
+#                         transforms.RandomRotation(degrees=30),
+#                         transforms.RandomVerticalFlip(p=0.5),
 ])
 
 # Apply transformation if needed
-apply_transform = False
+apply_transform = True
+
 if apply_transform:
     train_dataset = CityScapesDataset(csv_file='train.csv', transforms = transforms_composed)
-
-train_dataset = CityScapesDataset(csv_file='train.csv')
+else:
+    train_dataset = CityScapesDataset(csv_file='train.csv')
 val_dataset = CityScapesDataset(csv_file='val.csv')
 test_dataset = CityScapesDataset(csv_file='test.csv')
 train_loader = DataLoader(dataset=train_dataset,

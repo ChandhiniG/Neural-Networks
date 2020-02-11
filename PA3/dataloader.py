@@ -101,11 +101,12 @@ class CityScapesDataset(Dataset):
         label_name = self.data.iloc[idx, 1]
         label      = Image.open(label_name) #type PIL image
         
+#         print('Before - label.shape = ', label.size)
         # Apply transformation while image is of type PIL
         if self.transforms:
             img = self.transforms(img)
             label = self.transforms(label)
-        
+#         print('After - label.shape = ', label.size)
         # Convert image from PIL to numpy
         img = np.asarray(img)
         label = np.asarray(label)
@@ -122,7 +123,6 @@ class CityScapesDataset(Dataset):
         label = torch.from_numpy(label.copy()).long()
         
         
-
         # create one-hot encoding
         h, w = label.shape
         target = torch.zeros(self.n_class, h, w)
