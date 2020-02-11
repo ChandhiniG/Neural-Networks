@@ -8,8 +8,11 @@ import torch.optim as optim
 from torch.autograd import Variable
 import time
 
-
-train_dataset = CityScapesDataset(csv_file='train.csv')
+transforms_composed = transforms.Compose([
+                        transforms.RandomRotation(degrees=30),
+                        transforms.RandomVerticalFlip(p=0.5),
+])
+train_dataset = CityScapesDataset(csv_file='train.csv', transforms = transforms_composed)
 val_dataset = CityScapesDataset(csv_file='val.csv')
 test_dataset = CityScapesDataset(csv_file='test.csv')
 train_loader = DataLoader(dataset=train_dataset,
