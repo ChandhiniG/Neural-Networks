@@ -8,7 +8,7 @@ import torch.optim as optim
 from torch.autograd import Variable
 import time
 
-batch_s = 4
+batch_s = 2
 num_w = 4
 train_dataset = CityScapesDataset(csv_file='train.csv')
 val_dataset = CityScapesDataset(csv_file='val.csv')
@@ -67,7 +67,7 @@ def train():
             optimizer.step()
             
             if iter % 100 == 0:
-                print("epoch{}, iter{}, loss: {}".format(epoch, iter, loss.item()))
+                print("Training --- epoch{}, iter{}, loss: {}".format(epoch, iter, loss.item()))
                 break
         
         print("Finish epoch {}, time elapsed {}".format(epoch, time.time() - ts))
@@ -95,11 +95,11 @@ def val(epoch):
             tar = tar.cuda()
         else:
             X,tar = X.cpu(), tar.cpu()
-        p, iou = fcn_model.eval(X, tar)
+        p, iou = fcn_model.evaluate(X, tar)
         p_acc += p
         iou_acc += np.mean(np.array(iou))
         count += 1
-    print("Epoch {}: Pixel Acc: {}, IOU Acc: {}".format(epoch, p_acc/count, iou_acc/count))
+    print("Validating Epoch {} --- Pixel Acc: {}, IOU Acc: {}".format(epoch, p_acc/count, iou_acc/count))
     return p_acc/count, iou_acc/count
         
     
@@ -110,18 +110,18 @@ def test():
     p_acc = 0
     iou_acc = 0
     count = 0
-    fck_model.eval()
+    fcn_model.eval()
     for iter, (X, tar, Y) in enumerate(test_loader):
         if use_gpu:
             X = X.cuda()
             tar = tar.cuda()
         else:
             X,tar = X.cpu(), tar.cpu()
-        p, iou = fcn_model.eval(X, tar)
+        p, iou = fcn_model.evaluate(X, tar)
         p_acc += p
         iou_acc += np.mean(np.array(iou))
         count += 1
-    print("Pixel Acc: {}, IOU Acc: {}".format(p_acc/count, iou_acc/count))
+    print("Testing --- Pixel Acc: {}, IOU Acc: {}".format(p_acc/count, iou_acc/count))
     return p_acc/count, iou_acc/count
     
     

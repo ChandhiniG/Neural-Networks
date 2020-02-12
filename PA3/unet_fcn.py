@@ -94,11 +94,11 @@ class UNet(nn.Module):
 #         print(f"upconv2--- {score.shape}")
         return score  # size=(N, n_class, x.H/1, x.W/1)
 
-    def eval(self, img_batch, target_batch):
+    def evaluate(self, img_batch, target_batch):
         # forward pass
-        target_batch = target_batch.argmax(axis=1)
+        target_batch = target_batch.argmax(dim=1)
         probs_batch = self.forward(img_batch)
-        pred_batch = probs_batch.argmax(axis=1)
+        pred_batch = probs_batch.argmax(dim=1)
         p_acc = pixel_acc(pred_batch, target_batch)
         iou_acc = iou(pred_batch, target_batch, self.n_class)
 
