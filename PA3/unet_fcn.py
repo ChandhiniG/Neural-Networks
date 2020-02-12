@@ -45,7 +45,7 @@ class UNet(nn.Module):
                 nn.Conv2d(32, 32, kernel_size=3, padding=1, stride=2, dilation=1),
                 nn.ReLU(inplace=True))]
 
-        self.maxpool = nn.MaxPool2D(2)
+        self.maxpool = nn.MaxPool2d(2)
         self.classifier = nn.Conv2d(32, self.n_class, kernel_size=1)
 
     def forward(self, x):
