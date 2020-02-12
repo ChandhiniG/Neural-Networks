@@ -70,7 +70,7 @@ class FCN(nn.Module):
         score = self.classifier(out_decoder)                   
         return score  # size=(N, n_class, x.H/1, x.W/1)
     
-    def eval(self, img_batch, target_batch):
+    def evaluate(self, img_batch, target_batch):
         # forward pass
         target_batch = target_batch.argmax(axis=1)
         probs_batch = self.forward(img_batch)
