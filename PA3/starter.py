@@ -18,11 +18,11 @@ transforms_composed = transforms.Compose([
 apply_transform = True
 
 if apply_transform:
-    train_dataset = CityScapesDataset(csv_file='train.csv', transforms = transforms_composed)
+    train_dataset = CityScapesDataset(csv_file='train_small.csv', transforms = transforms_composed)
 else:
-    train_dataset = CityScapesDataset(csv_file='train.csv')
-val_dataset = CityScapesDataset(csv_file='val.csv')
-test_dataset = CityScapesDataset(csv_file='test.csv')
+    train_dataset = CityScapesDataset(csv_file='train_small.csv')
+val_dataset = CityScapesDataset(csv_file='val_small.csv')
+test_dataset = CityScapesDataset(csv_file='test_small.csv')
 train_loader = DataLoader(dataset=train_dataset,
                           batch_size=2,
                           num_workers=10,
@@ -82,7 +82,7 @@ def train():
         print("Finish epoch {}, time elapsed {}".format(epoch, time.time() - ts))
         losses.append(np.mean(np.array(losses_epoch)))
         p_acc,iou_acc = val(epoch)
-        p_accs.append(p_acc)
+        p_accs.append(p_acc.item())
         iou_accs.append(iou_acc)
         fcn_model.train()
         if epoch%10 == 0:
@@ -103,9 +103,12 @@ def val(epoch):
             tar = tar.cuda()
         else:
             X,tar = X.cpu(), tar.cpu()
-        p, iou = fcn_model.eval(X, tar)
+        p, iou = fcn_model.evaluate(X, tar)
         p_acc += p
-        iou_acc += np.mean(np.array(iou))
+        iou = np.array(iou)
+        mask = iou != np.nan
+        iou_acc = np.mean(iou[mask])
+        # iou_acc += np.mean(np.array(iou))
         count += 1
     print("Epoch {}: Pixel Acc: {}, IOU Acc: {}".format(epoch, p_acc/count, iou_acc/count))
     return p_acc/count, iou_acc/count
@@ -124,9 +127,11 @@ def test():
             tar = tar.cuda()
         else:
             X,tar = X.cpu(), tar.cpu()
-        p, iou = fcn_model.eval(X, tar)
+        p, iou = fcn_model.evaluate(X, tar)
         p_acc += p
-        iou_acc += np.mean(np.array(iou))
+        mask = iou != np.nan
+        iou_acc = np.mean(iou[mask])
+	# iou_acc += np.mean(np.array(iou))
         count += 1
     print("Pixel Acc: {}, IOU Acc: {}".format(p_acc/count, iou_acc/count))
     return p_acc/count, iou_acc/count
