@@ -106,9 +106,8 @@ def val(epoch):
         p, iou = fcn_model.evaluate(X, tar)
         p_acc += p
         iou = np.array(iou)
-        mask = iou != np.nan
-        iou_acc = np.mean(iou[mask])
-        # iou_acc += np.mean(np.array(iou))
+        mask = np.logical_not(np.isnan(iou))
+        iou_acc += np.mean(iou[mask])
         count += 1
     print("Epoch {}: Pixel Acc: {}, IOU Acc: {}".format(epoch, p_acc/count, iou_acc/count))
     return p_acc/count, iou_acc/count
@@ -129,9 +128,9 @@ def test():
             X,tar = X.cpu(), tar.cpu()
         p, iou = fcn_model.evaluate(X, tar)
         p_acc += p
-        mask = iou != np.nan
-        iou_acc = np.mean(iou[mask])
-	# iou_acc += np.mean(np.array(iou))
+        iou = np.array(iou)
+        mask = np.logical_not(np.isnan(iou))
+        iou_acc += np.mean(iou[mask])
         count += 1
     print("Pixel Acc: {}, IOU Acc: {}".format(p_acc/count, iou_acc/count))
     return p_acc/count, iou_acc/count
