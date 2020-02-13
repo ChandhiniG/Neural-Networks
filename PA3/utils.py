@@ -36,5 +36,5 @@ def pixel_acc(pred, target):
     Target: Tensor (B x W x H)
     Returns: Accuracy pixel wise
     """
-    num_pixels = float(pred.shape[1] * pred.shape[2])
+    num_pixels = float(pred.shape[0] * pred.shape[1] * pred.shape[2])
     return torch.sum(pred.eq(target))/num_pixels
