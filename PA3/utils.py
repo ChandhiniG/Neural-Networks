@@ -21,7 +21,7 @@ def iou(pred, target,n_class):
         union = (pred_class_n + target_class_n).sum().double()
 
         if union == 0:
-            ious.append(0)
+            ious.append(float('nan'))
             # ious.append(float('nan'))  # if there is no ground truth, do not include in evaluation
         else:
             iou_for_class_c = intersection/union
