@@ -58,6 +58,7 @@ def train():
     losses = []
     p_accs = []
     iou_accs = []
+    fcn_model.train()
     for epoch in range(epochs+1):
         losses_epoch = []
         ts = time.time()
@@ -97,6 +98,7 @@ def val(epoch):
     p_acc = 0
     iou_acc = 0
     count = 0
+    fcn_model.eval()
     for iter, (X, tar, Y) in enumerate(val_loader):
         if use_gpu:
             X = X.cuda()
@@ -120,6 +122,7 @@ def test():
     p_acc = 0
     iou_acc = 0
     count = 0
+    fcn_model.eval()
     for iter, (X, tar, Y) in enumerate(test_loader):
         if use_gpu:
             X = X.cuda()

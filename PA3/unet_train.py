@@ -9,10 +9,22 @@ from torch.autograd import Variable
 import time
 
 batch_s = 2
-num_w = 4
-train_dataset = CityScapesDataset(csv_file='train.csv')
-val_dataset = CityScapesDataset(csv_file='val.csv')
-test_dataset = CityScapesDataset(csv_file='test.csv')
+num_w = 10
+apply_transform = True
+
+transforms_composed = transforms.Compose([
+                        transforms.Resize((1024, 512)),
+#                         transforms.RandomRotation(degrees=30),
+#                         transforms.RandomVerticalFlip(p=0.5),
+])
+
+# Apply transformation if needed
+if apply_transform:
+    train_dataset = CityScapesDataset(csv_file='train_small.csv', transforms = transforms_composed)
+else:
+    train_dataset = CityScapesDataset(csv_file='train_small.csv')
+val_dataset = CityScapesDataset(csv_file='val_small.csv')
+test_dataset = CityScapesDataset(csv_file='test_small.csv')
 train_loader = DataLoader(dataset=train_dataset,
                           batch_size=batch_s,
                           num_workers=num_w,
@@ -31,7 +43,7 @@ def init_weights(m):
         torch.nn.init.xavier_uniform(m.weight.data)
         torch.nn.init.zeros_(m.bias.data)
         
-epochs     = 1
+epochs     = 100
 criterion = nn.CrossEntropyLoss()
 fcn_model = UNet(n_class=34)
 fcn_model.apply(init_weights)
@@ -74,13 +86,14 @@ def train():
         losses.append(np.mean(np.array(losses_epoch)))
         p_acc,iou_acc = val(epoch)
         p_accs.append(p_acc.item())
-        iou_accs.append(iou_acc.item())
+        iou_accs.append(iou_acc)
         fcn_model.train()
         if epoch%10 == 0:
-            torch.save(fcn_model, 'best_model')
-            np.save("losses",np.array(losses))
-            np.save("p_acc",np.array(p_accs))
-            np.save("iou_acc",np.array(iou_accs))
+            torch.save(fcn_model, 'unet_best_model')
+            np.save("unet_losses",np.array(losses))
+            np.save("unet_p_acc",np.array(p_accs))
+            np.save("unet_iou_acc",np.array(iou_accs))
+
 
 def val(epoch):
     # Complete this function - Calculate loss, accuracy and IoU for every epoch
@@ -94,18 +107,19 @@ def val(epoch):
             X = X.cuda()
             tar = tar.cuda()
         else:
-            X,tar = X.cpu(), tar.cpu()
+            X, tar = X.cpu(), tar.cpu()
         p, iou = fcn_model.evaluate(X, tar)
         p_acc += p
-        iou_acc += np.mean(np.array(iou))
+        iou = np.array(iou)
+        mask = np.logical_not(np.isnan(iou))
+        iou_acc += np.mean(iou[mask])
         count += 1
-    print("Validating Epoch {} --- Pixel Acc: {}, IOU Acc: {}".format(epoch, p_acc/count, iou_acc/count))
-    return p_acc/count, iou_acc/count
-        
-    
-    
+    print("Epoch {}: Pixel Acc: {}, IOU Acc: {}".format(epoch, p_acc / count, iou_acc / count))
+    return p_acc / count, iou_acc / count
+
+
 def test():
-    #Complete this function - Calculate accuracy and IoU 
+    # Complete this function - Calculate accuracy and IoU
     # Make sure to include a softmax after the output from your model
     p_acc = 0
     iou_acc = 0
@@ -116,18 +130,20 @@ def test():
             X = X.cuda()
             tar = tar.cuda()
         else:
-            X,tar = X.cpu(), tar.cpu()
+            X, tar = X.cpu(), tar.cpu()
         p, iou = fcn_model.evaluate(X, tar)
         p_acc += p
-        iou_acc += np.mean(np.array(iou))
+        iou = np.array(iou)
+        mask = np.logical_not(np.isnan(iou))
+        iou_acc += np.mean(iou[mask])
         count += 1
-    print("Testing --- Pixel Acc: {}, IOU Acc: {}".format(p_acc/count, iou_acc/count))
-    return p_acc/count, iou_acc/count
-    
-    
+    print("Pixel Acc: {}, IOU Acc: {}".format(p_acc / count, iou_acc / count))
+    return p_acc / count, iou_acc / count
+
+
 if __name__ == "__main__":
-#    val(0)# show the accuracy before training
-#     test()
+    #    val(0)# show the accuracy before training
+    #     test()
     train()
     print("Testing ")
     test()
