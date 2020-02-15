@@ -65,8 +65,8 @@ def iou2(pred, target,n_class):
         intersection = (pred_class_n & target_class_n).sum().double()
         #Union calculation is simpy OR between tensors
         union = (pred_class_n + target_class_n).sum().double()
-        ints.append(intersection)
-        unions.append(union)
+        ints.append(intersection.item())
+        unions.append(union.item())
 
     return ints,unions
 
