@@ -62,6 +62,7 @@ def train():
     p_accs = []
     iou_accs = []
     fcn_model.train()
+    min_loss = 100
     for epoch in range(epochs+1):
         losses_epoch = []
         ts = time.time()
@@ -88,6 +89,9 @@ def train():
         fcn_model.train()
         losses_val.append(val(epoch))
         print(losses[-1],losses_val[-1])
+        if(min_loss>losses_val[-1]):
+            torch.save(fcn_model, 'best_model')
+            min_loss = losses_val[-1]
 #         if epoch%10 == 0:
 #             torch.save(fcn_model, 'best_model')
 #             np.save("losses",np.array(losses))
@@ -97,11 +101,11 @@ def train():
             np.save("losses",np.array(losses))
             np.save("losses_val",np.array(losses_val))
 
-        torch.save(fcn_model, 'best_model')
-        p_acc,iou_acc = val(epochs,False)
-        np.save("p_acc",np.array([p_acc]))
-        np.save("iou_acc",np.array([iou_acc]))
-        print("pixel accuracy", p_acc , "iou acc", iou_acc)
+    torch.save(fcn_model, 'final_model')
+    p_acc,iou_acc = val(epochs,False)
+    np.save("p_acc",np.array([p_acc]))
+    np.save("iou_acc",np.array([iou_acc]))
+    print("pixel accuracy", p_acc , "iou acc", iou_acc)
 
 def val(epoch,flag = True):
     # Complete this function - Calculate loss, accuracy and IoU for every epoch
