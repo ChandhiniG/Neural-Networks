@@ -66,31 +66,29 @@ class FCN_updated(nn.Module):
             nn.Conv2d(64,128, kernel_size=3, stride=1, padding=1, dilation=1),
             nn.Conv2d(128,256, kernel_size=3, stride=1, padding=1, dilation=1))
         
-        self.encoder_3 = nn.Sequential
+        self.encoder_3 = nn.Sequential(
             nn.Conv2d(256,512, kernel_size=3, stride=1, padding=1, dilation=1))
 
         self.relu    = nn.PReLU()
 
         self.decoder_1 = nn.Sequential(
-            nn.ConvTranspose2d(512, 256, kernel_size=3, stride=1, padding=1, dilation=1, output_padding=1))
+            nn.ConvTranspose2d(512, 256, kernel_size=3, stride=1, padding=1, dilation=1, output_padding=0))
         self.unmaxpool = nn.MaxUnpool2d(2)
         
         self.decoder_2 = nn.Sequential(
-            nn.ConvTranspose2d(256, 128, kernel_size=3, stride=1, padding=1, dilation=1, output_padding=1),
-            nn.ConvTranspose2d(128, 64, kernel_size=3, stride=1, padding=1, dilation=1, output_padding=1),
-            nn.ConvTranspose2d(64, 32, kernel_size=3, stride=1, padding=1, dilation=1, output_padding=1))
+            nn.ConvTranspose2d(256, 128, kernel_size=3, stride=1, padding=1, dilation=1, output_padding=0),
+            nn.ConvTranspose2d(128, 64, kernel_size=3, stride=1, padding=1, dilation=1, output_padding=0),
+            nn.ConvTranspose2d(64, 32, kernel_size=3, stride=1, padding=1, dilation=1, output_padding=0))
 
         self.decoder_3 = nn.Sequential(
             nn.ConvTranspose2d(32, 16, kernel_size=5, stride=2, padding=2, dilation=1, output_padding=1),
             nn.ConvTranspose2d(16, 8, kernel_size=5, stride=2, padding=2, dilation=1, output_padding=1),
             nn.ConvTranspose2d(8, 3, kernel_size=5, stride=2, padding=2, dilation=1, output_padding=1))
-        )
 
         self.classifier = nn.Conv2d(3,self.n_class, kernel_size=1)
 
     def forward(self, x):
         x1 = self.relu(x)
-
         ##encoder 
         out_1 = self.encoder_1(x1)
         out_m_1, indices_1 = self.maxpool(out_1)
@@ -101,19 +99,19 @@ class FCN_updated(nn.Module):
         out_3 = self.encoder_3(out_m_2)
         out_m_3, indices_3 = self.maxpool(out_3)
 
-        encoded = self.relu(out_m_3)    
+        encoded = self.relu(out_m_3)  
 
         ###decoder 
-        out_decoder_1 = self.decoder_1(encoded)
-        out_d_1 = self.unmaxpool(out_decoder_1, indices_3, output_size=out_3.size())
+        out_d_1 = self.unmaxpool(encoded, indices_3, output_size=out_3.size())
+        out_decoder_1 = self.decoder_1(out_d_1)
 
-        out_decoder_2 = self.decoder_2(out_d_1)
-        out_d_2 = self.unmaxpool(out_decoder_2, indices_2, output_size=out_2.size())
-
-        out_decoder_2 = self.decoder_3(out_d_2)
+        out_d_2 = self.unmaxpool(out_decoder_1, indices_2, output_size=out_2.size())
+        out_decoder_2 = self.decoder_2(out_d_2)
+        
         out_d_3 = self.unmaxpool(out_decoder_2, indices_1, output_size=out_1.size())
+        out_decoder_3 = self.decoder_3(out_d_3)
 
-        score = self.classifier(out_d_3)                   
+        score = self.classifier(out_decoder_3)                   
         return score  # size=(N, n_class, x.H/1, x.W/1)
     
     def evaluate(self, img_batch, target_batch):
@@ -122,6 +120,5 @@ class FCN_updated(nn.Module):
         probs_batch = self.forward(img_batch)
         pred_batch = probs_batch.argmax(dim = 1)
         p_acc = pixel_acc(pred_batch, target_batch)
-        iou_acc = iou(pred_batch, target_batch,self.n_class)
-        
+        iou_acc = iou(pred_batch, target_batch,self.n_class)     
         return p_acc, iou_acc
