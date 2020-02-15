@@ -77,7 +77,7 @@ def pixel_acc2(pred, target):
     mask = torch.where((target == 0) | (target == 1) | (target == 2) | (target == 3) | (target == 4) |(target == 5) |(target == 6) |(target == 9) |(target == 10) |(target == 14) |(target == 15) |(target == 16) | (target == 18) |(target == 29) |(target == 30), f, t)
     target = target[mask == 1.0]
     pred = pred[mask == 1.0]
-    total_pixels = target.numel()
+    total_pixels = target.numel() + .000000000000001
     return torch.tensor(torch.sum(pred.eq(target)).item()/total_pixels)
 
 def one_hot(labels, classes):
