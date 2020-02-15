@@ -47,7 +47,6 @@ class FCN(nn.Module):
             probs_batch = self.forward(img_batch)
         pred_batch = probs_batch.argmax(dim = 1)
         p_acc = pixel_acc(pred_batch, target_batch)
-        iou_acc = iou(pred_batch, target_batch,self.n_class)
         iou2_ints,iou2_unions = iou2(pred_batch,target_y,self.n_class)
         
         return p_acc, iou_acc, iou2_ints, iou2_unions
@@ -124,3 +123,16 @@ class FCN_updated(nn.Module):
         p_acc = pixel_acc(pred_batch, target_batch)
         iou_acc = iou(pred_batch, target_batch,self.n_class)     
         return p_acc, iou_acc
+    
+    
+    
+# In val
+# torch.Size([2, 3, 1024, 2048]) torch.Size([2, 34, 1024, 2048])
+# In evaluate
+# torch.Size([2, 3, 1024, 2048]) torch.Size([2, 34, 1024, 2048])
+# pred and target batch
+# torch.Size([2, 1024, 2048]) torch.Size([2, 1024, 2048])
+# In pixel accuracy
+# torch.Size([2, 1024, 2048]) torch.Size([2, 1024, 2048])
+# torch.Size([])
+>>>>>>> Stashed changes

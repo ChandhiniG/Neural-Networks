@@ -44,8 +44,6 @@ def init_weights(m):
         
 epochs     = 50
 criterion = nn.CrossEntropyLoss()
-#fcn_model = FCN(n_class=n_class)
-###changing class here
 fcn_model = FCN_updated(n_class=n_class)
 fcn_model.apply(init_weights)
 #fcn_model = torch.load('best_model')
@@ -111,7 +109,7 @@ def val(epoch):
             Y = Y.cuda()
         else:
             X,tar,Y = X.cpu(), tar.cpu(),Y.cpu()
-        p, iou, iou_i, iou_u = fcn_model.evaluate(X, tar,Y)
+        p, iou, iou_i, iou_u = fcn_model.evaluate(X, tar,Y)    
         p_acc += p
         iou = np.array(iou)
         iou_int.append(iou_i) 
@@ -124,7 +122,6 @@ def val(epoch):
     print(iou_int/iou_union)
     print("Epoch {}: Pixel Acc: {}, IOU Acc: {}".format(epoch, p_acc/count, iou_acc/count))
     return p_acc/count, iou_acc/count
-        
     
     
 def test():
