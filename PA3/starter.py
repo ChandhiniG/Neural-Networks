@@ -9,7 +9,7 @@ from torch.autograd import Variable
 import time
 
 transforms_composed = transforms.Compose([
-                        transforms.Resize((512, 256)),
+                        transforms.Resize((512,1024)),
 #                         transforms.RandomRotation(degrees=30),
 #                         transforms.RandomVerticalFlip(p=0.5),
 ])
@@ -18,11 +18,11 @@ transforms_composed = transforms.Compose([
 apply_transform = False
 
 if apply_transform:
-    train_dataset = CityScapesDataset(csv_file='train_small.csv', transforms = transforms_composed)
+    train_dataset = CityScapesDataset(csv_file='train.csv', transforms = transforms_composed)
 else:
-    train_dataset = CityScapesDataset(csv_file='train_small.csv')
-val_dataset = CityScapesDataset(csv_file='val_small.csv')
-test_dataset = CityScapesDataset(csv_file='test_small.csv')
+    train_dataset = CityScapesDataset(csv_file='train.csv')
+val_dataset = CityScapesDataset(csv_file='val.csv')
+test_dataset = CityScapesDataset(csv_file='test.csv')
 train_loader = DataLoader(dataset=train_dataset,
                           batch_size=2,
                           num_workers=10,
@@ -61,9 +61,9 @@ def train():
     losses_val = []
     p_accs = []
     iou_accs = []
-    fcn_model.train()
     min_loss = 100
     for epoch in range(epochs+1):
+        fcn_model.train()
         losses_epoch = []
         ts = time.time()
         for iter, (X, tar, Y) in enumerate(train_loader):
@@ -86,7 +86,6 @@ def train():
         
         print("Finish epoch {}, time elapsed {}".format(epoch, time.time() - ts))
         losses.append(np.mean(np.array(losses_epoch)))
-        fcn_model.train()
         losses_val.append(val(epoch))
         print(losses[-1],losses_val[-1])
         if(min_loss>losses_val[-1]):
