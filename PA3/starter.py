@@ -44,7 +44,9 @@ def init_weights(m):
         
 epochs     = 100
 criterion = nn.CrossEntropyLoss()
-fcn_model = FCN(n_class=n_class)
+#fcn_model = FCN(n_class=n_class)
+###changing class here
+fcn_model = FCN_updated(n_class=n_class)
 fcn_model.apply(init_weights)
 #fcn_model = torch.load('best_model')
 optimizer = optim.Adam(fcn_model.parameters(), lr=5e-3)
