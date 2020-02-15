@@ -40,15 +40,17 @@ class FCN(nn.Module):
         score = self.classifier(out_decoder)                   
         return score  # size=(N, n_class, x.H/1, x.W/1)
     
-    def evaluate(self, img_batch, target_batch):
+    def evaluate(self, img_batch, target_batch,target_y):
         # forward pass
         target_batch = target_batch.argmax(dim=1)
-        probs_batch = self.forward(img_batch)
+        with torch.no_grad():
+            probs_batch = self.forward(img_batch)
         pred_batch = probs_batch.argmax(dim = 1)
         p_acc = pixel_acc(pred_batch, target_batch)
         iou_acc = iou(pred_batch, target_batch,self.n_class)
+        iou2_ints,iou2_unions = iou2(pred_batch,target_y,self.n_class)
         
-        return p_acc, iou_acc
+        return p_acc, iou_acc, iou2_ints, iou2_unions
 
 
 class FCN_updated(nn.Module):

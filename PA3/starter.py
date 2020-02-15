@@ -100,20 +100,28 @@ def val(epoch):
     # Make sure to include a softmax after the output from your model
     p_acc = 0
     iou_acc = 0
+    iou_int = []
+    iou_union = []
     count = 0
     fcn_model.eval()
     for iter, (X, tar, Y) in enumerate(val_loader):
         if use_gpu:
             X = X.cuda()
             tar = tar.cuda()
+            Y = Y.cuda()
         else:
-            X,tar = X.cpu(), tar.cpu()
-        p, iou = fcn_model.evaluate(X, tar)
+            X,tar,Y = X.cpu(), tar.cpu(),Y.cpu()
+        p, iou, iou_i, iou_u = fcn_model.evaluate(X, tar,Y)
         p_acc += p
         iou = np.array(iou)
+        iou_int.append(iou_i) 
+        iou_union.append(iou_u) 
         mask = np.logical_not(np.isnan(iou))
         iou_acc += np.mean(iou[mask])
         count += 1
+    iou_int = np.sum(np.array(iou_int),axis=0)
+    iou_union = np.sum(np.array(iou_union),axis=0)
+    print(iou_int/iou_union)
     print("Epoch {}: Pixel Acc: {}, IOU Acc: {}".format(epoch, p_acc/count, iou_acc/count))
     return p_acc/count, iou_acc/count
         
@@ -124,21 +132,29 @@ def test():
     # Make sure to include a softmax after the output from your model
     p_acc = 0
     iou_acc = 0
+    iou_int = []
+    iou_union = []
     count = 0
     fcn_model.eval()
     for iter, (X, tar, Y) in enumerate(test_loader):
         if use_gpu:
             X = X.cuda()
             tar = tar.cuda()
+            Y = Y.cuda()
         else:
-            X,tar = X.cpu(), tar.cpu()
-        p, iou = fcn_model.evaluate(X, tar)
+            X,tar,Y = X.cpu(), tar.cpu(),Y.cpu()
+        p, iou, iou_i, iou_u = fcn_model.evaluate(X, tar,Y)
         p_acc += p
         iou = np.array(iou)
+        iou_int.append(iou_i) 
+        iou_union.append(iou_u) 
         mask = np.logical_not(np.isnan(iou))
         iou_acc += np.mean(iou[mask])
         count += 1
-    print("Pixel Acc: {}, IOU Acc: {}".format(p_acc/count, iou_acc/count))
+    iou_int = np.sum(np.array(iou_int),axis=0)
+    iou_union = np.sum(np.array(iou_union),axis=0)
+    print(iou_int/iou_union)
+    print("Epoch {}: Pixel Acc: {}, IOU Acc: {}".format(epoch, p_acc/count, iou_acc/count))
     return p_acc/count, iou_acc/count
     
 if __name__ == "__main__":
