@@ -42,11 +42,11 @@ def init_weights(m):
         torch.nn.init.xavier_uniform(m.weight.data)
         torch.nn.init.zeros_(m.bias.data)
         
-epochs     = 100
+epochs     = 50
 criterion = nn.CrossEntropyLoss()
 fcn_model = FCN(n_class=n_class)
 ###changing class here
-# fcn_model = FCN_updated(n_class=n_class)
+fcn_model = FCN_segnet(n_class=n_class)
 fcn_model.apply(init_weights)
 #fcn_model = torch.load('best_model')
 optimizer = optim.Adam(fcn_model.parameters(), lr=5e-3)
@@ -91,11 +91,6 @@ def train():
         if(min_loss>losses_val[-1]):
             torch.save(fcn_model, 'best_model')
             min_loss = losses_val[-1]
-#         if epoch%10 == 0:
-#             torch.save(fcn_model, 'best_model')
-#             np.save("losses",np.array(losses))
-#             np.save("p_acc",np.array(p_accs))
-#             np.save("iou_acc",np.array(iou_accs))
         if epoch%10 == 0:
             np.save("losses",np.array(losses))
             np.save("losses_val",np.array(losses_val))
@@ -131,7 +126,6 @@ def val(epoch,flag = True):
             continue
         p, iou_i, iou_u = fcn_model.evaluate(X, tar,Y)
         p_acc += p
-#         iou = np.array(iou)
         iou_int.append(iou_i) 
         iou_union.append(iou_u) 
 #         mask = np.logical_not(np.isnan(iou))
@@ -144,8 +138,7 @@ def val(epoch,flag = True):
     iou_acc = np.mean(iou_int/iou_union)
     print("Epoch {}: Pixel Acc: {}, IOU Acc: {}".format(epoch, p_acc/count, iou_acc))
     return p_acc/count, iou_acc
-    
-    
+
 def test():
     #Complete this function - Calculate accuracy and IoU 
     # Make sure to include a softmax after the output from your model
@@ -171,7 +164,7 @@ def test():
     iou_acc = np.mean(iou_int/iou_union)
     print("Test : Pixel Acc: {}, IOU Acc: {}".format( p_acc/count, iou_acc))
     return p_acc/count, iou_acc
-    
+      
     
 if __name__ == "__main__":
 #    val(0)# show the accuracy before training
