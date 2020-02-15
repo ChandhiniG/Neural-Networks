@@ -15,7 +15,7 @@ transforms_composed = transforms.Compose([
 ])
 
 # Apply transformation if needed
-apply_transform = False
+apply_transform = True
 
 if apply_transform:
     train_dataset = CityScapesDataset(csv_file='train_small.csv', transforms = transforms_composed)
@@ -42,11 +42,11 @@ def init_weights(m):
         torch.nn.init.xavier_uniform(m.weight.data)
         torch.nn.init.zeros_(m.bias.data)
         
-epochs     = 50
+epochs     = 100
 criterion = nn.CrossEntropyLoss()
-#fcn_model = FCN(n_class=n_class)
+fcn_model = FCN(n_class=n_class)
 ###changing class here
-fcn_model = FCN_updated(n_class=n_class)
+fcn_model = FCN_segnet(n_class=n_class)
 fcn_model.apply(init_weights)
 #fcn_model = torch.load('best_model')
 optimizer = optim.Adam(fcn_model.parameters(), lr=5e-3)
@@ -58,9 +58,11 @@ if use_gpu:
     
 def train():
     losses = []
+    losses_val = []
     p_accs = []
     iou_accs = []
     fcn_model.train()
+    min_loss = 100
     for epoch in range(epochs+1):
         losses_epoch = []
         ts = time.time()
@@ -85,61 +87,95 @@ def train():
         print("Finish epoch {}, time elapsed {}".format(epoch, time.time() - ts))
         losses.append(np.mean(np.array(losses_epoch)))
         fcn_model.train()
+        losses_val.append(val(epoch))
+<<<<<<< Updated upstream
+        print(losses[-1],losses_val[-1])
+=======
+        print(losses[-1],losses_val[-1])        
+>>>>>>> Stashed changes
+        if(min_loss>losses_val[-1]):
+            torch.save(fcn_model, 'best_model')
+            min_loss = losses_val[-1]
+#         if epoch%10 == 0:
+#             torch.save(fcn_model, 'best_model')
+#             np.save("losses",np.array(losses))
+#             np.save("p_acc",np.array(p_accs))
+#             np.save("iou_acc",np.array(iou_accs))
         if epoch%10 == 0:
             np.save("losses",np.array(losses))
+            np.save("losses_val",np.array(losses_val))
 
-    torch.save(fcn_model, 'best_model')
-    p_acc,iou_acc = val(epochs)
+    torch.save(fcn_model, 'final_model')
+    p_acc,iou_acc = val(epochs,False)
     np.save("p_acc",np.array([p_acc]))
     np.save("iou_acc",np.array([iou_acc]))
     print("pixel accuracy", p_acc , "iou acc", iou_acc)
-        
 
-def val(epoch):
+def val(epoch,flag = True):
     # Complete this function - Calculate loss, accuracy and IoU for every epoch
     # Make sure to include a softmax after the output from your model
     p_acc = 0
     iou_acc = 0
+    iou_int = []
+    iou_union = []
     count = 0
     fcn_model.eval()
+    losses = []
     for iter, (X, tar, Y) in enumerate(val_loader):
         if use_gpu:
             X = X.cuda()
             tar = tar.cuda()
+            Y = Y.cuda()
         else:
-            X,tar = X.cpu(), tar.cpu()
-        p, iou = fcn_model.evaluate(X, tar)
+            X,tar,Y = X.cpu(), tar.cpu(),Y.cpu()
+            
+        if flag:
+            with torch.no_grad():
+                outputs = fcn_model(X)
+            losses.append(criterion(outputs, Y).item())
+            continue
+        p, iou_i, iou_u = fcn_model.evaluate(X, tar,Y)
         p_acc += p
-        iou = np.array(iou)
-        mask = np.logical_not(np.isnan(iou))
-        iou_acc += np.mean(iou[mask])
+#         iou = np.array(iou)
+        iou_int.append(iou_i) 
+        iou_union.append(iou_u) 
+#         mask = np.logical_not(np.isnan(iou))
+#         iou_acc += np.mean(iou[mask])
         count += 1
-    print("Epoch {}: Pixel Acc: {}, IOU Acc: {}".format(epoch, p_acc/count, iou_acc/count))
-    return p_acc/count, iou_acc/count
-        
-    
-    
+    if flag:
+        return np.mean(np.array(losses))
+    iou_int = np.sum(np.array(iou_int),axis=0)
+    iou_union = np.sum(np.array(iou_union),axis=0)
+    iou_acc = np.mean(iou_int/iou_union)
+    print("Epoch {}: Pixel Acc: {}, IOU Acc: {}".format(epoch, p_acc/count, iou_acc))
+    return p_acc/count, iou_acc
+
 def test():
     #Complete this function - Calculate accuracy and IoU 
     # Make sure to include a softmax after the output from your model
     p_acc = 0
     iou_acc = 0
+    iou_int = []
+    iou_union = []
     count = 0
-    fcn_model.eval()
     for iter, (X, tar, Y) in enumerate(test_loader):
         if use_gpu:
             X = X.cuda()
             tar = tar.cuda()
+            Y = Y.cuda()
         else:
-            X,tar = X.cpu(), tar.cpu()
-        p, iou = fcn_model.evaluate(X, tar)
+            X,tar,Y = X.cpu(), tar.cpu(),Y.cpu()
+        p, iou_i, iou_u = fcn_model.evaluate(X, tar,Y)
         p_acc += p
-        iou = np.array(iou)
-        mask = np.logical_not(np.isnan(iou))
-        iou_acc += np.mean(iou[mask])
+        iou_int.append(iou_i) 
+        iou_union.append(iou_u) 
         count += 1
-    print("Pixel Acc: {}, IOU Acc: {}".format(p_acc/count, iou_acc/count))
-    return p_acc/count, iou_acc/count
+    iou_int = np.sum(np.array(iou_int),axis=0)
+    iou_union = np.sum(np.array(iou_union),axis=0)
+    iou_acc = np.mean(iou_int/iou_union)
+    print("Test : Pixel Acc: {}, IOU Acc: {}".format( p_acc/count, iou_acc))
+    return p_acc/count, iou_acc
+      
     
 if __name__ == "__main__":
 #    val(0)# show the accuracy before training

@@ -40,16 +40,17 @@ class FCN(nn.Module):
         score = self.classifier(out_decoder)                   
         return score  # size=(N, n_class, x.H/1, x.W/1)
     
-    def evaluate(self, img_batch, target_batch):
+    def evaluate(self, img_batch, target_batch,target_y):
         # forward pass
         with torch.no_grad():
             probs_batch = self.forward(img_batch)
         target_batch = target_batch.argmax(dim=1)
         pred_batch = probs_batch.argmax(dim = 1)
-        p_acc = pixel_acc(pred_batch, target_batch)
-        iou_acc = iou(pred_batch, target_batch,self.n_class)
+#         p_acc = pixel_acc(pred_batch, target_batch)
+        p_acc2 = pixel_acc2(pred_batch, target_y)
+        iou2_ints,iou2_unions = iou2(pred_batch,target_y,self.n_class)
         
-        return p_acc, iou_acc
+        return p_acc2, iou2_ints, iou2_unions
 
 
 class FCN_vgg(nn.Module):
@@ -254,3 +255,17 @@ class FCN_segnet(nn.Module):
         p_acc = pixel_acc(pred_batch, target_batch)
         iou_ints,iou_unions = iou2(pred_batch, target_batch,self.n_class)     
         return p_acc, iou_ints, iou_unions
+        iou_acc = iou(pred_batch, target_batch,self.n_class)     
+        return p_acc, iou_acc
+    
+    
+    
+# In val
+# torch.Size([2, 3, 1024, 2048]) torch.Size([2, 34, 1024, 2048])
+# In evaluate
+# torch.Size([2, 3, 1024, 2048]) torch.Size([2, 34, 1024, 2048])
+# pred and target batch
+# torch.Size([2, 1024, 2048]) torch.Size([2, 1024, 2048])
+# In pixel accuracy
+# torch.Size([2, 1024, 2048]) torch.Size([2, 1024, 2048])
+# torch.Size([])
