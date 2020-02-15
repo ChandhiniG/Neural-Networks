@@ -95,4 +95,3 @@ class DiceLoss(nn.Module):
         loss = 1 - ((2. * intersection + 1) /
                     (output_flat.sum() + target_flat.sum() + 1))
         return loss
->>>>>>> Stashed changes
