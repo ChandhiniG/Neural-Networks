@@ -47,7 +47,6 @@ criterion = nn.CrossEntropyLoss()
 fcn_model = FCN(n_class=n_class)
 ###changing class here
 # fcn_model = FCN_updated(n_class=n_class)
->>>>>>> c38ae52451f406b38612b4324d7e6a57e2babb49
 fcn_model.apply(init_weights)
 #fcn_model = torch.load('best_model')
 optimizer = optim.Adam(fcn_model.parameters(), lr=5e-3)
@@ -98,11 +97,11 @@ def train():
             np.save("losses",np.array(losses))
             np.save("losses_val",np.array(losses_val))
 
-    torch.save(fcn_model, 'best_model')
-    p_acc,iou_acc = val(epochs,False)
-    np.save("p_acc",np.array([p_acc]))
-    np.save("iou_acc",np.array([iou_acc]))
-    print("pixel accuracy", p_acc , "iou acc", iou_acc)
+        torch.save(fcn_model, 'best_model')
+        p_acc,iou_acc = val(epochs,False)
+        np.save("p_acc",np.array([p_acc]))
+        np.save("iou_acc",np.array([iou_acc]))
+        print("pixel accuracy", p_acc , "iou acc", iou_acc)
 
 def val(epoch,flag = True):
     # Complete this function - Calculate loss, accuracy and IoU for every epoch
@@ -127,22 +126,21 @@ def val(epoch,flag = True):
                 outputs = fcn_model(X)
             losses.append(criterion(outputs, Y).item())
             continue
-        p, iou, iou_i, iou_u = fcn_model.evaluate(X, tar,Y)
-
+        p, iou_i, iou_u = fcn_model.evaluate(X, tar,Y)
         p_acc += p
-        iou = np.array(iou)
+#         iou = np.array(iou)
         iou_int.append(iou_i) 
         iou_union.append(iou_u) 
-        mask = np.logical_not(np.isnan(iou))
-        iou_acc += np.mean(iou[mask])
+#         mask = np.logical_not(np.isnan(iou))
+#         iou_acc += np.mean(iou[mask])
         count += 1
     if flag:
         return np.mean(np.array(losses))
     iou_int = np.sum(np.array(iou_int),axis=0)
     iou_union = np.sum(np.array(iou_union),axis=0)
-    print(iou_int/iou_union)
-    print("Epoch {}: Pixel Acc: {}, IOU Acc: {}".format(epoch, p_acc/count, iou_acc/count))
-    return p_acc/count, iou_acc/count
+    iou_acc = np.mean(iou_int/iou_union)
+    print("Epoch {}: Pixel Acc: {}, IOU Acc: {}".format(epoch, p_acc/count, iou_acc))
+    return p_acc/count, iou_acc
     
     
 def test():
@@ -153,7 +151,6 @@ def test():
     iou_int = []
     iou_union = []
     count = 0
-    fcn_model.eval()
     for iter, (X, tar, Y) in enumerate(test_loader):
         if use_gpu:
             X = X.cuda()
@@ -161,19 +158,17 @@ def test():
             Y = Y.cuda()
         else:
             X,tar,Y = X.cpu(), tar.cpu(),Y.cpu()
-        p, iou, iou_i, iou_u = fcn_model.evaluate(X, tar,Y)
+        p, iou_i, iou_u = fcn_model.evaluate(X, tar,Y)
         p_acc += p
-        iou = np.array(iou)
         iou_int.append(iou_i) 
         iou_union.append(iou_u) 
-        mask = np.logical_not(np.isnan(iou))
-        iou_acc += np.mean(iou[mask])
         count += 1
     iou_int = np.sum(np.array(iou_int),axis=0)
     iou_union = np.sum(np.array(iou_union),axis=0)
-    print(iou_int/iou_union)
-    print("Epoch {}: Pixel Acc: {}, IOU Acc: {}".format(epoch, p_acc/count, iou_acc/count))
-    return p_acc/count, iou_acc/count
+    iou_acc = np.mean(iou_int/iou_union)
+    print("Test : Pixel Acc: {}, IOU Acc: {}".format( p_acc/count, iou_acc))
+    return p_acc/count, iou_acc
+    
     
 if __name__ == "__main__":
 #    val(0)# show the accuracy before training

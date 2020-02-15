@@ -42,14 +42,15 @@ class FCN(nn.Module):
     
     def evaluate(self, img_batch, target_batch,target_y):
         # forward pass
-        target_batch = target_batch.argmax(dim=1)
+#         target_batch = target_batch.argmax(dim=1)
         with torch.no_grad():
             probs_batch = self.forward(img_batch)
         pred_batch = probs_batch.argmax(dim = 1)
-        p_acc = pixel_acc(pred_batch, target_batch)
+#         p_acc = pixel_acc(pred_batch, target_batch)
+        p_acc2 = pixel_acc2(pred_batch, target_y)
         iou2_ints,iou2_unions = iou2(pred_batch,target_y,self.n_class)
         
-        return p_acc, iou_acc, iou2_ints, iou2_unions
+        return p_acc2, iou2_ints, iou2_unions
 
 
 class FCN_updated(nn.Module):
