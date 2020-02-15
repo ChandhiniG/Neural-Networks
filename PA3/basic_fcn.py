@@ -242,21 +242,17 @@ class FCN_segnet(nn.Module):
         score = self.classifier(out_dec)
         return score
 
-    def evaluate(self, img_batch, target_batch):
+    def evaluate(self, img_batch, target_batch,target_y):
         # forward pass
-        use_gpu = torch.cuda.is_available()
-        if (use_gpu):
-            img_batch = img_batch.cuda()
-            target_batch = target_batch.cuda()
-        target_batch = target_batch.argmax(dim=1)
         with torch.no_grad():
             probs_batch = self.forward(img_batch)
+        target_batch = target_batch.argmax(dim=1)
         pred_batch = probs_batch.argmax(dim = 1)
-        p_acc = pixel_acc(pred_batch, target_batch)
-        iou_ints,iou_unions = iou2(pred_batch, target_batch,self.n_class)     
-        return p_acc, iou_ints, iou_unions
-        iou_acc = iou(pred_batch, target_batch,self.n_class)     
-        return p_acc, iou_acc
+#         p_acc = pixel_acc(pred_batch, target_batch)
+        p_acc2 = pixel_acc2(pred_batch, target_y)
+        iou2_ints,iou2_unions = iou2(pred_batch,target_y,self.n_class)
+        return p_acc2, iou2_ints, iou2_unions
+
     
     
     

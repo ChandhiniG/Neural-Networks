@@ -15,7 +15,7 @@ transforms_composed = transforms.Compose([
 ])
 
 # Apply transformation if needed
-apply_transform = True
+apply_transform = False
 
 if apply_transform:
     train_dataset = CityScapesDataset(csv_file='train_small.csv', transforms = transforms_composed)
@@ -42,7 +42,7 @@ def init_weights(m):
         torch.nn.init.xavier_uniform(m.weight.data)
         torch.nn.init.zeros_(m.bias.data)
         
-epochs     = 100
+epochs     = 50
 criterion = nn.CrossEntropyLoss()
 fcn_model = FCN(n_class=n_class)
 ###changing class here
@@ -88,19 +88,10 @@ def train():
         losses.append(np.mean(np.array(losses_epoch)))
         fcn_model.train()
         losses_val.append(val(epoch))
-<<<<<<< Updated upstream
         print(losses[-1],losses_val[-1])
-=======
-        print(losses[-1],losses_val[-1])        
->>>>>>> Stashed changes
         if(min_loss>losses_val[-1]):
             torch.save(fcn_model, 'best_model')
             min_loss = losses_val[-1]
-#         if epoch%10 == 0:
-#             torch.save(fcn_model, 'best_model')
-#             np.save("losses",np.array(losses))
-#             np.save("p_acc",np.array(p_accs))
-#             np.save("iou_acc",np.array(iou_accs))
         if epoch%10 == 0:
             np.save("losses",np.array(losses))
             np.save("losses_val",np.array(losses_val))
@@ -136,7 +127,6 @@ def val(epoch,flag = True):
             continue
         p, iou_i, iou_u = fcn_model.evaluate(X, tar,Y)
         p_acc += p
-#         iou = np.array(iou)
         iou_int.append(iou_i) 
         iou_union.append(iou_u) 
 #         mask = np.logical_not(np.isnan(iou))
