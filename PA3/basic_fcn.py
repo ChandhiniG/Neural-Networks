@@ -42,8 +42,9 @@ class FCN(nn.Module):
     
     def evaluate(self, img_batch, target_batch):
         # forward pass
+        with torch.no_grad():
+            probs_batch = self.forward(img_batch)
         target_batch = target_batch.argmax(dim=1)
-        probs_batch = self.forward(img_batch)
         pred_batch = probs_batch.argmax(dim = 1)
         p_acc = pixel_acc(pred_batch, target_batch)
         iou_acc = iou(pred_batch, target_batch,self.n_class)
@@ -51,15 +52,16 @@ class FCN(nn.Module):
         return p_acc, iou_acc
 
 
-class FCN_updated(nn.Module):
+class FCN_vgg(nn.Module):
     def __init__(self, n_class):
         super().__init__()
         self.n_class = n_class
+        self.maxpool = nn.MaxPool2d(2, return_indices=True)
+        self.unmaxpool = nn.MaxUnpool2d(2)
         self.encoder_1 = nn.Sequential(
             nn.Conv2d(3,8, kernel_size=5, stride=2, padding=2, dilation=1),
             nn.Conv2d(8,16, kernel_size=5, stride=2, padding=2, dilation=1),
             nn.Conv2d(16,32, kernel_size=5, stride=2, padding=2, dilation=1))
-        self.maxpool = nn.MaxPool2d(2, return_indices=True)
 
         self.encoder_2 = nn.Sequential(
             nn.Conv2d(32,64, kernel_size=3, stride=1, padding=1, dilation=1),
@@ -73,7 +75,6 @@ class FCN_updated(nn.Module):
 
         self.decoder_1 = nn.Sequential(
             nn.ConvTranspose2d(512, 256, kernel_size=3, stride=1, padding=1, dilation=1, output_padding=0))
-        self.unmaxpool = nn.MaxUnpool2d(2)
         
         self.decoder_2 = nn.Sequential(
             nn.ConvTranspose2d(256, 128, kernel_size=3, stride=1, padding=1, dilation=1, output_padding=0),
@@ -117,8 +118,139 @@ class FCN_updated(nn.Module):
     def evaluate(self, img_batch, target_batch):
         # forward pass
         target_batch = target_batch.argmax(dim=1)
+ 
         probs_batch = self.forward(img_batch)
         pred_batch = probs_batch.argmax(dim = 1)
         p_acc = pixel_acc(pred_batch, target_batch)
-        iou_acc = iou(pred_batch, target_batch,self.n_class)     
-        return p_acc, iou_acc
+        iou_ints,iou_unions = iou2(pred_batch, target_batch,self.n_class)     
+        return p_acc, iou_ints, iou_unions
+    
+    
+class FCN_segnet(nn.Module):
+    def __init__(self, n_class):
+        super().__init__()
+        self.n_class = n_class
+        self.maxpool = nn.MaxPool2d(2, stride=2)
+        self.relu    = nn.ReLU(inplace=True)
+        self.encoder = nn.Sequential(nn.Conv2d(3, 32, kernel_size=3, stride=2, padding=1, dilation=1),
+           nn.BatchNorm2d(32),
+           nn.ReLU(inplace=True),                          
+           nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1, dilation=1),
+           nn.BatchNorm2d(64),
+           nn.ReLU(inplace=True),
+           ##additional layer
+           nn.Conv2d(64, 64, kernel_size=3, stride=2, padding=1, dilation=1),
+           nn.BatchNorm2d(64),
+           nn.ReLU(inplace=True), 
+           #nn.MaxPool2d(2, stride=1),             
+           
+           nn.Conv2d(64, 128, kernel_size=3, stride=2, padding=1, dilation=1),
+           nn.BatchNorm2d(128),
+           nn.ReLU(inplace=True),
+           nn.Conv2d(128,256, kernel_size=3, stride=2, padding=1, dilation=1),
+           nn.BatchNorm2d(256),
+           nn.ReLU(inplace=True),
+           nn.Conv2d(256, 256, kernel_size=3, stride=2, padding=1, dilation=1),
+           nn.BatchNorm2d(256),
+           nn.ReLU(inplace=True), 
+           #nn.MaxPool2d(2, stride=1),             
+                                                                
+           nn.Conv2d(256, 512, kernel_size=3, stride=2, padding=1, dilation=1),
+           nn.BatchNorm2d(512),
+           nn.Conv2d(512, 1024, kernel_size=3, stride=2, padding=1, dilation=1),
+           nn.BatchNorm2d(1024))  
+        
+        
+        self.decoder = nn.Sequential(
+            nn.ConvTranspose2d(1024, 512, kernel_size=3, stride=2, padding=1, dilation=1, output_padding=1),
+            nn.BatchNorm2d(512),
+            nn.ConvTranspose2d(512, 256, kernel_size=3, stride=2, padding=1, dilation=1, output_padding=1),
+            nn.BatchNorm2d(256),
+            nn.ConvTranspose2d(256, 256, kernel_size=3, stride=2, padding=1, dilation=1, output_padding=1),
+            nn.BatchNorm2d(256),
+            nn.ConvTranspose2d(256, 128, kernel_size=3, stride=2, padding=1, dilation=1, output_padding=1),
+            nn.BatchNorm2d(128),
+            nn.ConvTranspose2d(128, 64, kernel_size=3, stride=2, padding=1, dilation=1, output_padding=1),
+            nn.BatchNorm2d(64),
+            nn.ConvTranspose2d(64, 64, kernel_size=3, stride=2, padding=1, dilation=1, output_padding=1),
+            nn.BatchNorm2d(64),
+            nn.ConvTranspose2d(64, 32, kernel_size=3, stride=2, padding=1, dilation=1, output_padding=1),
+            nn.BatchNorm2d(32),
+            nn.ConvTranspose2d(32, 3, kernel_size=3, stride=2, padding=1, dilation=1, output_padding=1),
+            nn.BatchNorm2d(3))
+        
+        
+#         self.encoder = nn.Sequential(self.conv_block(3, 64), 
+#                                      self.conv_block(64, 64),
+#                                      #self.maxpool,
+#                                      self.conv_block(64, 128), 
+#                                      self.conv_block(128, 128),
+#                                      #self.maxpool,
+#                                      self.conv_block(128, 256), 
+#                                      self.conv_block(256, 256),
+#                                      self.conv_block(256, 256),
+#                                      #self.maxpool,
+#                                      self.conv_block(256, 512), 
+#                                      self.conv_block(512, 512),
+#                                      self.conv_block(512, 512),
+#                                      #self.maxpool,
+#                                      self.conv_block(256, 512), 
+#                                      self.conv_block(512, 512),
+#                                      self.conv_block(512, 512))
+#                                      #self.maxpool)
+#         self.decoder = nn.Sequential(self.conv_transpose_block(512, 512),
+#                                       self.conv_block(512, 512),
+#                                       self.conv_block(512, 512),
+#                                       self.conv_block(512, 512),
+#                                       self.conv_block(512, 512),
+#                                       self.conv_transpose_block(512, 512),
+#                                       self.conv_block(512, 512),
+#                                       self.conv_block(512, 512),
+#                                       self.conv_block(512, 512),
+#                                       self.conv_block(512, 256),
+#                                       self.conv_transpose_block(256, 256),
+#                                       self.conv_block(256, 256),
+#                                       self.conv_block(256, 256),
+#                                       self.conv_block(256, 128),
+#                                       self.conv_transpose_block(128, 128),
+#                                       self.conv_block(128, 128),
+#                                       self.conv_block(128, 64),
+#                                       self.conv_transpose_block(64, 64),
+#                                       self.conv_block(64, 64),
+#                                       self.conv_block(64, 64))
+        self.classifier = nn.Conv2d(3,self.n_class, kernel_size=1) 
+                                     
+    def conv_block(self, inp, nfilters):
+        conv = nn.Conv2d(inp, nfilters , kernel_size=3,stride=2, padding=1, dilation=1)
+        bn = nn.BatchNorm2d(nfilters)
+#         out = self.relu(bn)
+#         print("enc", out.shape)
+        return 
+    
+    def conv_transpose_block(self, inp, nfilters, kernel_size=3):
+        conv = nn.ConvTranspose2d(inp, nfilters, kernel_size, stride=2)
+        out = nn.ReLU(nn.BatchNorm2d(nfilters))
+        return out
+    
+       
+    def forward(self, x):
+        ##encoder     
+        out_enc = self.encoder(x)
+#         encoded = self.relu(out_enc)
+        out_dec = self.decoder(out_enc)
+        score = self.classifier(out_dec)
+        return score
+
+    def evaluate(self, img_batch, target_batch):
+        # forward pass
+        use_gpu = torch.cuda.is_available()
+        if (use_gpu):
+            img_batch = img_batch.cuda()
+            target_batch = target_batch.cuda()
+        target_batch = target_batch.argmax(dim=1)
+        with torch.no_grad():
+            probs_batch = self.forward(img_batch)
+        pred_batch = probs_batch.argmax(dim = 1)
+        p_acc = pixel_acc(pred_batch, target_batch)
+        iou_ints,iou_unions = iou2(pred_batch, target_batch,self.n_class)     
+        return p_acc, iou_ints, iou_unions
