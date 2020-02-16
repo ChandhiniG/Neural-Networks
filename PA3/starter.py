@@ -137,6 +137,8 @@ def val(epoch,flag = True):
     iou_union = np.sum(np.array(iou_union),axis=0)
     iou_acc = np.mean(iou_int/iou_union)
     print("Epoch {}: Pixel Acc: {}, IOU Acc: {}".format(epoch, p_acc/count, iou_acc))
+    print("building{}, traffic sign{}, person{}, car{}, bicycle{}".format(
+        iou_acc[2],iou_acc[7],iou_acc[11],iou_acc[13],iou_acc[18]))
     return p_acc/count, iou_acc
 
 def test():
