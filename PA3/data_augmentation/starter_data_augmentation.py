@@ -1,44 +1,22 @@
 import sys
 sys.path.insert(0,'..') #adding parent directory to module search path
 
-import torch
-import torchvision
 from torchvision import utils
-import torch.nn as nn
+from basic_fcn import *
+from dataloader_data_augmentation import *
+from utils import *
+import torchvision
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.autograd import Variable
 import time
-# from tensorboardX import SummaryWriter
 
-from dataloader import *
-from utils import *
-from transfer_learning_fcn import *
+# Data augmentation is hard wired in the dataset class of dataloader_data_augmentation.py file
+# Inspired from - https://discuss.pytorch.org/t/how-to-apply-same-transform-on-a-pair-of-picture/14914/2
 
-def init_weights(m):
-    '''
-    Initializing weight of Decoder layers only
-    '''
-    if isinstance(m, nn.ConvTranspose2d):
-        torch.nn.init.xavier_uniform_(m.weight.data)
-        torch.nn.init.zeros_(m.bias.data)
-
-def freeze_encoder_weights(model):
-    '''
-    Freezes the weights for the encoder layer. This is based on the fact that the encoder is a nn.Sequential object
-    and is named encoder. Check the model in transfer_learning_fcn.py file for clarity
-    '''
-    for name, param in model.named_parameters():
-        if 'encoder' in name:
-            param.requires_grad = False
-    return model
-
-transforms_composed = transforms.Compose([
-                        transforms.Resize((256, 512)),
-                        ])
-train_dataset = CityScapesDataset(csv_file='../train.csv', transforms = transforms_composed)
-val_dataset = CityScapesDataset(csv_file='../val.csv', transforms = transforms_composed)
-test_dataset = CityScapesDataset(csv_file='../test.csv', transforms = transforms_composed)
+train_dataset = CityScapesDataset(csv_file='../train.csv')
+val_dataset = CityScapesDataset(csv_file='../val.csv')
+test_dataset = CityScapesDataset(csv_file='../test.csv')
 train_loader = DataLoader(dataset=train_dataset,
                           batch_size=2,
                           num_workers=10,
@@ -52,29 +30,37 @@ test_loader = DataLoader(dataset=test_dataset,
                           num_workers=10,
                           shuffle=True)
 
-epochs    = 60
+
+def init_weights(m):
+    if isinstance(m, nn.Conv2d) or isinstance(m, nn.ConvTranspose2d):
+        torch.nn.init.xavier_uniform_(m.weight.data)
+        torch.nn.init.zeros_(m.bias.data)
+        
+epochs     = 55
 criterion = nn.CrossEntropyLoss()
-model     = PretrainedEncoder(n_class=n_class)
-model     = freeze_encoder_weights(model)
-model.apply(init_weights)
-optimizer = optim.Adam(model.parameters(), lr=5e-3)
+fcn_model = FCN(n_class=n_class)
+###changing class here
+# fcn_model = FCN_segnet(n_class=n_class) # ------> mod of encoder decoder class
+fcn_model.apply(init_weights)
+#fcn_model = torch.load('best_model')
+optimizer = optim.Adam(fcn_model.parameters(), lr=5e-3)
+
 
 use_gpu = torch.cuda.is_available()
 if use_gpu:
-    model = model.cuda()
+    fcn_model = fcn_model.cuda()
     
 def train():
-    losses, losses_val = [], []
-    p_accs, iou_accs = [], []
+    losses = []
+    losses_val = []
+    p_accs = []
+    iou_accs = []
     min_loss = float('inf')
-#     anchor_X, _, anchor_Y = train_dataset[206] #for tensorboardX
-#     anchor_X = anchor_X.unsqueeze_(0) #adding an extra dimension to fake batchsize of 1
     for epoch in range(epochs+1):
-        model.train()
+        fcn_model.train()
         losses_epoch = []
         ts = time.time()
-        ###  Start: Training with mini batches over the dataset
-        for i, (X, tar, Y) in enumerate(train_loader):
+        for iter, (X, tar, Y) in enumerate(train_loader):
             optimizer.zero_grad()
 
             if use_gpu:
@@ -83,57 +69,40 @@ def train():
             else:
                 inputs, labels = X.cpu(), Y.cpu()
 
-            outputs = model(inputs)
+            outputs = fcn_model(inputs)
             loss = criterion(outputs, labels)
             losses_epoch.append(loss.item())
             loss.backward()
             optimizer.step()
             
-            if i % 400 == 0:
-                print("epoch{}, iter{}, loss: {}".format(epoch, i, loss.item()))
-        ###  End: Training with mini batches over the dataset
+            if iter % 400 == 0:
+                print("epoch{}, iter{}, loss: {}".format(epoch, iter, loss.item()))
         
         losses.append(np.mean(np.array(losses_epoch)))
-        print("Finish epoch {}, time elapsed {:.2f}, loss: {:.3f}".format(epoch, time.time() - ts, losses[-1]))
+        print("Finish epoch {}, time elapsed {:.2f}, loss {:.3f}".format(epoch, time.time() - ts, losses[-1]))
         losses_val.append(val(epoch))
-        
-#         ### Start: TensorboardX extra code
-#         writer.add_scalar('data/train_loss', losses[-1], i)
-#         writer.add_scalar('data/val_loss', losses_val[-1], i)
-#         ## End: TensorboardX extra code
-        
-        # Saving model if its the best
         if(min_loss>losses_val[-1]):
-            torch.save(model, 'best_model')
+            torch.save(fcn_model, 'best_model')
             min_loss = losses_val[-1]
-        # Saving train and val loss every 5 epochs
         if epoch%5 == 0:
             np.save("losses",np.array(losses))
             np.save("losses_val",np.array(losses_val))
-#             ### Start: TensorboardX extra code
-#             pred = model(anchor_X.cuda())
-#             pred_Y = pred.argmax(dim = 1)
-#             pred_Y = pred_Y.cpu().data.numpy()
-#             # Convert to 1D image
-#             writer.add_image('image/actual_Y', anchor_Y, i)
-#             writer.add_image('image/pred_Y', pred_Y[0], i)
-#             ### End: TensorboardX extra code
 
-    torch.save(model, 'final_model')
+    torch.save(fcn_model, 'final_model')
     p_acc,iou_acc = val(epochs,False)
     np.save("p_acc",np.array([p_acc]))
     np.save("iou_acc",np.array([iou_acc]))
-    print("pixel accuracy", p_acc , "\niou acc", iou_acc)
+    print("pixel accuracy", p_acc , "iou acc", iou_acc)
 
 def val(epoch,flag = True):
-    '''
-    If flag = True, it will only return validation loss
-    If flag = False, it will return pixel accuracy and iou accuracy
-    '''
-    p_acc, iou_acc, count = 0, 0, 0
-    iou_int, iou_union = [], []
-    
-    model.eval()
+    # Complete this function - Calculate loss, accuracy and IoU for every epoch
+    # Make sure to include a softmax after the output from your model
+    p_acc = 0
+    iou_acc = 0
+    iou_int = []
+    iou_union = []
+    count = 0
+    fcn_model.eval()
     losses = []
     for iter, (X, tar, Y) in enumerate(val_loader):
         if use_gpu:
@@ -145,33 +114,32 @@ def val(epoch,flag = True):
             
         if flag:
             with torch.no_grad():
-                outputs = model(X)
+                outputs = fcn_model(X)
             losses.append(criterion(outputs, Y).item())
             continue
-        p, iou_i, iou_u = model.evaluate(X, tar,Y)
+        p, iou_i, iou_u = fcn_model.evaluate(X, tar,Y)
         p_acc += p
         iou_int.append(iou_i) 
         iou_union.append(iou_u) 
+#         mask = np.logical_not(np.isnan(iou))
+#         iou_acc += np.mean(iou[mask])
         count += 1
-
     if flag:
         return np.mean(np.array(losses))
-    
     iou_int = np.sum(np.array(iou_int),axis=0)
     iou_union = np.sum(np.array(iou_union),axis=0)
     iou_acc = np.mean(iou_int/iou_union)
     print("Epoch {}: Pixel Acc: {}, IOU Acc: {}".format(epoch, p_acc/count, iou_acc))
-    
     return p_acc/count, iou_acc
-    
-    
+
 def test():
     #Complete this function - Calculate accuracy and IoU 
     # Make sure to include a softmax after the output from your model
-    p_acc, iou_acc, count = 0, 0, 0
-    iou_int, iou_union = [], []
-    model.eval()
-    
+    p_acc = 0
+    iou_acc = 0
+    iou_int = []
+    iou_union = []
+    count = 0
     for iter, (X, tar, Y) in enumerate(test_loader):
         if use_gpu:
             X = X.cuda()
@@ -179,28 +147,31 @@ def test():
             Y = Y.cuda()
         else:
             X,tar,Y = X.cpu(), tar.cpu(),Y.cpu()
-        p, iou_i, iou_u = model.evaluate(X, tar,Y)
+        p, iou_i, iou_u = fcn_model.evaluate(X, tar,Y)
         p_acc += p
         iou_int.append(iou_i) 
         iou_union.append(iou_u) 
         count += 1
-    
     iou_int = np.sum(np.array(iou_int),axis=0)
     iou_union = np.sum(np.array(iou_union),axis=0)
     iou_union += 1e-10
     iou_acc = np.mean(iou_int/iou_union)
     print("Test : Pixel Acc: {}, IOU Acc: {}".format( p_acc/count, iou_acc))
-    
     return p_acc/count, iou_acc
-    
+      
     
 if __name__ == "__main__":
 #    val(0)# show the accuracy before training
 #     test()
-#     writer = SummaryWriter('./tensorboard_transfer_learning')
     train()
     print("Testing ")
     pixel_accuracy, iou_accuracy = test()
     print('pixel_accuracy = ', pixel_accuracy)
     print('iou_accuracy = ', iou_accuracy)
-#     writer.close()
+
+
+
+
+
+
+
