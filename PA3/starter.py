@@ -15,7 +15,7 @@ transforms_composed = transforms.Compose([
 ])
 
 # Apply transformation if needed
-apply_transform = False
+apply_transform = True
 
 if apply_transform:
     train_dataset = CityScapesDataset(csv_file='train.csv', transforms = transforms_composed)
@@ -29,11 +29,11 @@ train_loader = DataLoader(dataset=train_dataset,
                           shuffle=True)
 val_loader = DataLoader(dataset=val_dataset,
                           batch_size=2,
-                          num_workers=10,
+                          num_workers=3,
                           shuffle=True)
 test_loader = DataLoader(dataset=test_dataset,
                           batch_size=2,
-                          num_workers=10,
+                          num_workers=3,
                           shuffle=True)
 
 
@@ -44,11 +44,12 @@ def init_weights(m):
         
 epochs     = 50
 criterion = nn.CrossEntropyLoss()
-fcn_model = FCN(n_class=n_class)
+#fcn_model = FCN(n_class=n_class)
 ###changing class here
-fcn_model = FCN_segnet(n_class=n_class)
-fcn_model.apply(init_weights)
-#fcn_model = torch.load('best_model')
+#fcn_model = FCN_vgg(n_class=n_class)
+#fcn_model.apply(init_weights)
+fcn_model = torch.load('best_model')
+#fcn_model = torch.load('final_model')
 optimizer = optim.Adam(fcn_model.parameters(), lr=5e-3)
 
 
@@ -137,6 +138,8 @@ def val(epoch,flag = True):
     iou_union = np.sum(np.array(iou_union),axis=0)
     iou_acc = np.mean(iou_int/iou_union)
     print("Epoch {}: Pixel Acc: {}, IOU Acc: {}".format(epoch, p_acc/count, iou_acc))
+    print("building{}, traffic sign{}, person{}, car{}, bicycle{}".format(
+        iou_acc[2],iou_acc[7],iou_acc[11],iou_acc[13],iou_acc[18]))
     return p_acc/count, iou_acc
 
 def test():
@@ -167,9 +170,8 @@ def test():
       
     
 if __name__ == "__main__":
+  #  train()
 #    val(0)# show the accuracy before training
-#     test()
-    train()
     print("Testing ")
     test()
 
