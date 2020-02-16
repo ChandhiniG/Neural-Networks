@@ -52,7 +52,7 @@ test_loader = DataLoader(dataset=test_dataset,
                           num_workers=10,
                           shuffle=True)
 
-epochs    = 70
+epochs    = 60
 criterion = nn.CrossEntropyLoss()
 model     = PretrainedEncoder(n_class=n_class)
 model     = freeze_encoder_weights(model)
@@ -89,9 +89,8 @@ def train():
             loss.backward()
             optimizer.step()
             
-            if i % 200 == 0:
+            if i % 400 == 0:
                 print("epoch{}, iter{}, loss: {}".format(epoch, i, loss.item()))
-            break # ---------------------> Remove for proper training
         ###  End: Training with mini batches over the dataset
         
         losses.append(np.mean(np.array(losses_epoch)))
@@ -188,7 +187,8 @@ def test():
     
     iou_int = np.sum(np.array(iou_int),axis=0)
     iou_union = np.sum(np.array(iou_union),axis=0)
-    iou_acc = np.mean(iou_int/iou_union + 1e-10)
+    iou_union += 1e-10
+    iou_acc = np.mean(iou_int/iou_union)
     print("Test : Pixel Acc: {}, IOU Acc: {}".format( p_acc/count, iou_acc))
     
     return p_acc/count, iou_acc
@@ -200,5 +200,7 @@ if __name__ == "__main__":
 #     writer = SummaryWriter('./tensorboard_transfer_learning')
     train()
     print("Testing ")
-    test()
+    pixel_accuracy, iou_accuracy = test()
+    print('pixel_accuracy = ', pixel_accuracy)
+    print('iou_accuracy = ', iou_accuracy)
 #     writer.close()

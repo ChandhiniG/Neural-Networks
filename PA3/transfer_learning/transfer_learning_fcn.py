@@ -8,14 +8,13 @@ class PretrainedEncoder(nn.Module):
         self.n_class = n_class
         
         # Encoder: Extracing encoder config from pretraiend model
-        model_pretrained = torchvision.models.vgg11(pretrained=True)
+        model_pretrained = torchvision.models.vgg11_bn(pretrained=True)
         self.encoder = list(model_pretrained.children())[0] #type nn.Sequential
         
         # Encoder: Changing maxpool layer config to change return_indices to True
         for i, layer in enumerate(self.encoder):
             if type(layer) == torch.nn.modules.pooling.MaxPool2d:
-                kernel_size, stride, padding, dilation, ceil_mode = layer.kernel_size, \
-                                                                    layer.stride, layer.padding, layer.dilation, layer.ceil_mode
+                kernel_size, stride, padding, dilation, ceil_mode = layer.kernel_size, layer.stride, layer.padding, layer.dilation, layer.ceil_mode
                 layer = torch.nn.modules.pooling.MaxPool2d(kernel_size, 
                                                            stride=stride, 
                                                            padding=padding, 
@@ -26,19 +25,27 @@ class PretrainedEncoder(nn.Module):
                 
         # Decoder: Defining decoder according to encoder
         self.decoder = nn.Sequential(
-                    nn.MaxUnpool2d(kernel_size=2, stride=2, padding=0), #20
+                    nn.MaxUnpool2d(kernel_size=2, stride=2, padding=0), #28
+                    nn.BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True), #26
+                    nn.ConvTranspose2d(512, 512, kernel_size=3, stride=1, padding=1), #25
+                    nn.BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True), #23
+                    nn.ConvTranspose2d(512, 512, kernel_size=3, stride=1, padding=1), #22
+                    nn.MaxUnpool2d(kernel_size=2, stride=2, padding=0), #21
+                    nn.BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True), #19
                     nn.ConvTranspose2d(512, 512, kernel_size=3, stride=1, padding=1), #18
-                    nn.ConvTranspose2d(512, 512, kernel_size=3, stride=1, padding=1), #16
-                    nn.MaxUnpool2d(kernel_size=2, stride=2, padding=0), #15
-                    nn.ConvTranspose2d(512, 512, kernel_size=3, stride=1, padding=1), #13
-                    nn.ConvTranspose2d(512, 256, kernel_size=3, stride=1, padding=1), #11
-                    nn.MaxUnpool2d(kernel_size=2, stride=2, padding=0), #10
-                    nn.ConvTranspose2d(256, 256, kernel_size=3, stride=1, padding=1), #8
-                    nn.ConvTranspose2d(256, 128, kernel_size=3, stride=1, padding=1), #6
-                    nn.MaxUnpool2d(kernel_size=2, stride=2, padding=0), #5
-                    nn.ConvTranspose2d(128, 64, kernel_size=3, stride=1, padding=1), #3
-                    nn.MaxUnpool2d(kernel_size=2, stride=2, padding=0), #2            
-                    nn.ConvTranspose2d(64, 3, kernel_size=3, stride=1, padding=1), #1
+                    nn.BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True), #16
+                    nn.ConvTranspose2d(512, 256, kernel_size=3, stride=1, padding=1), #15
+                    nn.MaxUnpool2d(kernel_size=2, stride=2, padding=0), #14
+                    nn.BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True), #12
+                    nn.ConvTranspose2d(256, 256, kernel_size=3, stride=1, padding=1), #11
+                    nn.BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True), #9
+                    nn.ConvTranspose2d(256, 128, kernel_size=3, stride=1, padding=1), #8
+                    nn.MaxUnpool2d(kernel_size=2, stride=2, padding=0), #7
+                    nn.BatchNorm2d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True), #5
+                    nn.ConvTranspose2d(128, 64, kernel_size=3, stride=1, padding=1), #4
+                    nn.MaxUnpool2d(kernel_size=2, stride=2, padding=0), #3
+                    nn.BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True), #1
+                    nn.ConvTranspose2d(64, 3, kernel_size=3, stride=1, padding=1), #0
             )
         
         self.classifier = nn.Conv2d(3,self.n_class, kernel_size=1)
