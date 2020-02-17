@@ -3,6 +3,7 @@ from dataloader import labels_classes
 import torch.nn as nn
 import torch.nn.functional as F
 
+use_gpu = torch.cuda.is_available()
 
 def iou(pred, target,n_class):
     """
@@ -72,8 +73,11 @@ def iou2(pred, target,n_class):
 
 
 def pixel_acc2(pred, target):
-    f = torch.zeros(target.shape).cuda()
-    t = torch.ones(target.shape).cuda()
+    f = torch.zeros(target.shape)
+    t = torch.ones(target.shape)
+    if use_gpu:
+        f = f.cuda()
+        t = t.cuda()
     mask = torch.where((target == 0) | (target == 1) | (target == 2) | (target == 3) | (target == 4) |(target == 5) |(target == 6) |(target == 9) |(target == 10) |(target == 14) |(target == 15) |(target == 16) | (target == 18) |(target == 29) |(target == 30), f, t)
     target = target[mask == 1.0]
     pred = pred[mask == 1.0]

@@ -99,7 +99,7 @@ class CityScapesDataset(Dataset):
         label_name = self.data.iloc[idx, 1]
         label      = Image.open(label_name) #type PIL image
         
-        # ------------ Apply transformation while image is of type PIL ------------ 
+        # ------------ Start: Apply transformation while image is of type PIL ------------ 
         # Resize
         resize = transforms.Resize(size=(256, 512))
         img = resize(img)
@@ -113,11 +113,12 @@ class CityScapesDataset(Dataset):
             angle = random.random() * 30.0
             img = TF.rotate(img, angle=angle, expand=False, center=None)
             label = TF.rotate(label, angle=angle, expand=False, center=None)
-#         # Random grayscale
-#         if random.random() > 0.5:
-#             img = TF.to_grayscale(img, num_output_channels=3)
-#             label = label
-
+        # Random grayscale
+        if random.random() > 0.5:
+            img = TF.to_grayscale(img, num_output_channels=3)
+            label = label
+        # ------------ Start: Apply transformation while image is of type PIL ------------ 
+    
         # Convert image from PIL to numpy
         img = np.asarray(img)
         label = np.asarray(label)

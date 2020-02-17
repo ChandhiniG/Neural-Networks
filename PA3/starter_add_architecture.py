@@ -1,7 +1,7 @@
-import sys
-sys.path.insert(0,'..') #adding parent directory to module search path
-
 from torchvision import utils
+from basic_fcn import *
+from dataloader import *
+from utils import *
 import torchvision
 import torch.nn.functional as F
 import torch.optim as optim
@@ -9,27 +9,18 @@ from torch.autograd import Variable
 import time
 import argparse
 
-from basic_fcn import *
-from dataloader_data_augmentation import *
-from utils import *
+# Apply transformation if needed, only to the train dataset
+transforms_composed = transforms.Compose([transforms.Resize((512,1024))])
+apply_transform = True
+if apply_transform:
+    train_dataset = CityScapesDataset(csv_file='train.csv', transforms = transforms_composed)
+else:
+    train_dataset = CityScapesDataset(csv_file='train.csv')
+    
+# Load val and test datasets
+val_dataset = CityScapesDataset(csv_file='val.csv')
+test_dataset = CityScapesDataset(csv_file='test.csv')
 
-def init_weights(m):
-    '''
-    Initializing weight of Decoder layers only
-    '''
-    if isinstance(m, nn.Conv2d) or isinstance(m, nn.ConvTranspose2d):
-        torch.nn.init.xavier_uniform_(m.weight.data)
-        torch.nn.init.zeros_(m.bias.data)
-
-# ------------- Please read. Thanks. You're awesome -------------
-# NOTE: Data augmentation is hard wired in the dataset class of dataloader_data_augmentation.py file. The transformations
-# had to be done manually so that the SAME random transformation is applied to the img and label.
-# Solution inspired from - https://discuss.pytorch.org/t/how-to-apply-same-transform-on-a-pair-of-picture/14914/2
-# ---------------------------------------------------------------
-
-train_dataset = CityScapesDataset(csv_file='../train.csv')
-val_dataset = CityScapesDataset(csv_file='../val.csv')
-test_dataset = CityScapesDataset(csv_file='../test.csv')
 train_loader = DataLoader(dataset=train_dataset,
                           batch_size=2,
                           num_workers=10,
@@ -40,30 +31,35 @@ val_loader = DataLoader(dataset=val_dataset,
                           shuffle=True)
 test_loader = DataLoader(dataset=test_dataset,
                           batch_size=2,
-                          num_workers=10,
+                          num_workers=3,
                           shuffle=True)
 
-epochs    = 60
+# Xavier Initialisation
+def init_weights(m):
+    if isinstance(m, nn.Conv2d) or isinstance(m, nn.ConvTranspose2d):
+        torch.nn.init.xavier_uniform(m.weight.data)
+        torch.nn.init.zeros_(m.bias.data)
+        
+# Setting parameters and creating the model        
+epochs     = 100
 criterion = nn.CrossEntropyLoss()
-fcn_model = FCN(n_class=n_class)
+fcn_model = FCN_vgg(n_class=n_class)
 fcn_model.apply(init_weights)
 optimizer = optim.Adam(fcn_model.parameters(), lr=5e-3)
-
 use_gpu = torch.cuda.is_available()
 if use_gpu:
     fcn_model = fcn_model.cuda()
     
+"""
+Trains the model and saves the best model based on the minimum validation loss
+seen during training. 
+"""
 def train():
-    '''
-    This function trains the model, stores the traing and validation loss, 
-    stores the best model model every epoch, stores the losses every 5 epochs,
-    and saves the model at the end of the training irrespective of whether it was best or not
-    '''
     losses = []
     losses_val = []
     p_accs = []
     iou_accs = []
-    min_loss = float('inf')
+    min_loss = 100
     for epoch in range(epochs+1):
         fcn_model.train()
         losses_epoch = []
@@ -83,16 +79,17 @@ def train():
             loss.backward()
             optimizer.step()
             
-            if iter % 400 == 0:
+            if iter % 100 == 0:
                 print("epoch{}, iter{}, loss: {}".format(epoch, iter, loss.item()))
         
+        print("Finish epoch {}, time elapsed {}".format(epoch, time.time() - ts))
         losses.append(np.mean(np.array(losses_epoch)))
-        print("Finish epoch {}, time elapsed {:.2f}, loss {:.3f}".format(epoch, time.time() - ts, losses[-1]))
         losses_val.append(val(epoch))
+        print(losses[-1],losses_val[-1])
         if(min_loss>losses_val[-1]):
             torch.save(fcn_model, 'best_model')
             min_loss = losses_val[-1]
-        if epoch%5 == 0:
+        if epoch%10 == 0:
             np.save("losses",np.array(losses))
             np.save("losses_val",np.array(losses_val))
 
@@ -102,14 +99,10 @@ def train():
     np.save("iou_acc",np.array([iou_acc]))
     print("pixel accuracy", p_acc , "iou acc", iou_acc)
 
+"""
+Calculates the pixel accuracy and iou accuracy per class for the validation dataset
+"""
 def val(epoch,flag = True):
-    '''
-    This function tests the model using the validation set.
-    
-    The input epoch tells it at which epoch its performing validation.
-    If flag = True, it will only return validation loss
-    If flag = False, it will return pixel accuracy and iou accuracy
-    '''
     p_acc = 0
     iou_acc = 0
     iou_int = []
@@ -139,15 +132,16 @@ def val(epoch,flag = True):
         return np.mean(np.array(losses))
     iou_int = np.sum(np.array(iou_int),axis=0)
     iou_union = np.sum(np.array(iou_union),axis=0)
-    iou_union += 1e-10 #to avoid zero division error
     iou_acc = np.mean(iou_int/iou_union)
     print("Epoch {}: Pixel Acc: {}, IOU Acc: {}".format(epoch, p_acc/count, iou_acc))
+    print("building{}, traffic sign{}, person{}, car{}, bicycle{}".format(
+        iou_acc[2],iou_acc[7],iou_acc[11],iou_acc[13],iou_acc[18]))
     return p_acc/count, iou_acc
 
+"""
+Calculates the pixel accuracy and iou accuracy per class for the Test dataset
+"""
 def test():
-    '''
-    Function to test the model and output the pixel and iou accuracy
-    '''
     p_acc = 0
     iou_acc = 0
     iou_int = []
@@ -167,7 +161,6 @@ def test():
         count += 1
     iou_int = np.sum(np.array(iou_int),axis=0)
     iou_union = np.sum(np.array(iou_union),axis=0)
-    iou_union += 1e-10 #to avoid zero division error
     iou_acc = np.mean(iou_int/iou_union)
     print("Test : Pixel Acc: {}, IOU Acc: {}".format( p_acc/count, iou_acc))
     return p_acc/count, iou_acc
@@ -181,8 +174,6 @@ if __name__ == "__main__":
     if args.mode == "train":
         train()
     else:
-        print("Testing ")
-        model = torch.load('best_model')
-        pixel_accuracy, iou_accuracy = test()
-        print('pixel_accuracy = ', pixel_accuracy)
-        print('iou_accuracy = ', iou_accuracy)
+        fcn_model = torch.load('best_model')
+        test()
+

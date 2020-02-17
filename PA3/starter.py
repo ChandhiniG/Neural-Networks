@@ -7,56 +7,53 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.autograd import Variable
 import time
+import argparse
 
-transforms_composed = transforms.Compose([
-                        transforms.Resize((512,1024)),
-#                         transforms.RandomRotation(degrees=30),
-#                         transforms.RandomVerticalFlip(p=0.5),
-])
-
-# Apply transformation if needed
-apply_transform = True
-
+# Apply transformation if needed, only to the train dataset
+transforms_composed = transforms.Compose([transforms.Resize((512,1024))])
+apply_transform = False
 if apply_transform:
     train_dataset = CityScapesDataset(csv_file='train.csv', transforms = transforms_composed)
 else:
     train_dataset = CityScapesDataset(csv_file='train.csv')
+    
+# Load val and test datasets
 val_dataset = CityScapesDataset(csv_file='val.csv')
 test_dataset = CityScapesDataset(csv_file='test.csv')
+
 train_loader = DataLoader(dataset=train_dataset,
                           batch_size=2,
                           num_workers=10,
                           shuffle=True)
 val_loader = DataLoader(dataset=val_dataset,
                           batch_size=2,
-                          num_workers=3,
+                          num_workers=10,
                           shuffle=True)
 test_loader = DataLoader(dataset=test_dataset,
                           batch_size=2,
                           num_workers=3,
                           shuffle=True)
 
-
+# Xavier Initialisation
 def init_weights(m):
     if isinstance(m, nn.Conv2d) or isinstance(m, nn.ConvTranspose2d):
         torch.nn.init.xavier_uniform(m.weight.data)
         torch.nn.init.zeros_(m.bias.data)
         
-epochs     = 50
+# Setting parameters and creating the model        
+epochs     = 100
 criterion = nn.CrossEntropyLoss()
-#fcn_model = FCN(n_class=n_class)
-###changing class here
-#fcn_model = FCN_vgg(n_class=n_class)
-#fcn_model.apply(init_weights)
-fcn_model = torch.load('best_model')
-#fcn_model = torch.load('final_model')
+fcn_model = FCN(n_class=n_class)
+fcn_model.apply(init_weights)
 optimizer = optim.Adam(fcn_model.parameters(), lr=5e-3)
-
-
 use_gpu = torch.cuda.is_available()
 if use_gpu:
     fcn_model = fcn_model.cuda()
     
+"""
+Trains the model and saves the best model based on the minimum validation loss
+seen during training. 
+"""
 def train():
     losses = []
     losses_val = []
@@ -102,9 +99,10 @@ def train():
     np.save("iou_acc",np.array([iou_acc]))
     print("pixel accuracy", p_acc , "iou acc", iou_acc)
 
+"""
+Calculates the pixel accuracy and iou accuracy per class for the validation dataset
+"""
 def val(epoch,flag = True):
-    # Complete this function - Calculate loss, accuracy and IoU for every epoch
-    # Make sure to include a softmax after the output from your model
     p_acc = 0
     iou_acc = 0
     iou_int = []
@@ -129,8 +127,6 @@ def val(epoch,flag = True):
         p_acc += p
         iou_int.append(iou_i) 
         iou_union.append(iou_u) 
-#         mask = np.logical_not(np.isnan(iou))
-#         iou_acc += np.mean(iou[mask])
         count += 1
     if flag:
         return np.mean(np.array(losses))
@@ -142,9 +138,10 @@ def val(epoch,flag = True):
         iou_acc[2],iou_acc[7],iou_acc[11],iou_acc[13],iou_acc[18]))
     return p_acc/count, iou_acc
 
+"""
+Calculates the pixel accuracy and iou accuracy per class for the Test dataset
+"""
 def test():
-    #Complete this function - Calculate accuracy and IoU 
-    # Make sure to include a softmax after the output from your model
     p_acc = 0
     iou_acc = 0
     iou_int = []
@@ -170,14 +167,13 @@ def test():
       
     
 if __name__ == "__main__":
-  #  train()
-#    val(0)# show the accuracy before training
-    print("Testing ")
-    test()
-
-
-
-
-
-
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-m', '--mode', required = True)
+    args = parser.parse_args()
+    
+    if args.mode == "train":
+        train()
+    else:
+        fcn_model = torch.load('best_model')
+        test()
 
