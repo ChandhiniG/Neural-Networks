@@ -113,10 +113,10 @@ class CityScapesDataset(Dataset):
             angle = random.random() * 30.0
             img = TF.rotate(img, angle=angle, expand=False, center=None)
             label = TF.rotate(label, angle=angle, expand=False, center=None)
-        # Random grayscale
-        if random.random() > 0.5:
-            img = TF.to_grayscale(img, num_output_channels=3)
-            label = label
+#         # Random grayscale
+#         if random.random() > 0.5:
+#             img = TF.to_grayscale(img, num_output_channels=3)
+#             label = label
 
         # Convert image from PIL to numpy
         img = np.asarray(img)

@@ -36,7 +36,7 @@ def init_weights(m):
         torch.nn.init.xavier_uniform_(m.weight.data)
         torch.nn.init.zeros_(m.bias.data)
         
-epochs     = 55
+epochs     = 60
 criterion = nn.CrossEntropyLoss()
 fcn_model = FCN(n_class=n_class)
 ###changing class here
