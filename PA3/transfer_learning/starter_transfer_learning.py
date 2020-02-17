@@ -52,7 +52,7 @@ test_loader = DataLoader(dataset=test_dataset,
                           num_workers=10,
                           shuffle=True)
 
-epochs    = 0
+epochs    = 60
 criterion = nn.CrossEntropyLoss()
 model     = PretrainedEncoder(n_class=n_class)
 model     = freeze_encoder_weights(model)
@@ -148,6 +148,7 @@ def val(epoch,flag = True):
     
     iou_int = np.sum(np.array(iou_int),axis=0)
     iou_union = np.sum(np.array(iou_union),axis=0)
+    iou_union += 1e-10 #to avoid zero division error
     iou_acc = np.mean(iou_int/iou_union)
     print("Epoch {}: Pixel Acc: {}, IOU Acc: {}".format(epoch, p_acc/count, iou_acc))
     
@@ -177,7 +178,7 @@ def test():
     
     iou_int = np.sum(np.array(iou_int),axis=0)
     iou_union = np.sum(np.array(iou_union),axis=0)
-    iou_union += 1e-10
+    iou_union += 1e-10 #to avoid zero division error
     iou_acc = np.mean(iou_int/iou_union)
     print("Test : Pixel Acc: {}, IOU Acc: {}".format( p_acc/count, iou_acc))
     
