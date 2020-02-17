@@ -1,6 +1,9 @@
 import torch.nn as nn
 from utils import *
 
+"""
+Baseline encoder decoder architecture
+"""
 class FCN(nn.Module):
     def __init__(self, n_class):
         super().__init__()
@@ -46,13 +49,15 @@ class FCN(nn.Module):
             probs_batch = self.forward(img_batch)
         target_batch = target_batch.argmax(dim=1)
         pred_batch = probs_batch.argmax(dim = 1)
-#         p_acc = pixel_acc(pred_batch, target_batch)
         p_acc2 = pixel_acc2(pred_batch, target_y)
         iou2_ints,iou2_unions = iou2(pred_batch,target_y,self.n_class)
         
         return p_acc2, iou2_ints, iou2_unions
 
 
+"""
+Modified architecture for 3(b). Implements additional conv layers, maxpooling and uses PReLU
+"""
 class FCN_vgg(nn.Module):
     def __init__(self, n_class):
         super().__init__()
@@ -116,7 +121,7 @@ class FCN_vgg(nn.Module):
         out_m_3, indices_3 = self.maxpool(out_3)
 
         encoded = self.relu(out_m_3)  
-
+        
         ###decoder 
         out_d_1 = self.unmaxpool(encoded, indices_3, output_size=out_3.size())
         out_decoder_1 = self.decoder_1(out_d_1)
@@ -126,29 +131,16 @@ class FCN_vgg(nn.Module):
         
         out_d_3 = self.unmaxpool(out_decoder_2, indices_1, output_size=out_1.size())
         out_decoder_3 = self.decoder_3(out_d_3)
-
-        score = self.classifier(out_decoder_3)                   
+        
+        score = self.classifier(out_decoder_3)  
         return score  # size=(N, n_class, x.H/1, x.W/1)
     
     def evaluate(self, img_batch, target_batch,target_y):
-        # forward pass
         with torch.no_grad():
             probs_batch = self.forward(img_batch)
         target_batch = target_batch.argmax(dim=1)
         pred_batch = probs_batch.argmax(dim = 1)
-#         p_acc = pixel_acc(pred_batch, target_batch)
         p_acc2 = pixel_acc2(pred_batch, target_y)
         iou2_ints,iou2_unions = iou2(pred_batch,target_y,self.n_class)
         return p_acc2, iou2_ints, iou2_unions
-    
-   
-    
-# In val
-# torch.Size([2, 3, 1024, 2048]) torch.Size([2, 34, 1024, 2048])
-# In evaluate
-# torch.Size([2, 3, 1024, 2048]) torch.Size([2, 34, 1024, 2048])
-# pred and target batch
-# torch.Size([2, 1024, 2048]) torch.Size([2, 1024, 2048])
-# In pixel accuracy
-# torch.Size([2, 1024, 2048]) torch.Size([2, 1024, 2048])
-# torch.Size([])
+
