@@ -52,7 +52,7 @@ test_loader = DataLoader(dataset=test_dataset,
                           num_workers=10,
                           shuffle=True)
 
-epochs    = 60
+epochs    = 0
 criterion = nn.CrossEntropyLoss()
 model     = PretrainedEncoder(n_class=n_class)
 model     = freeze_encoder_weights(model)
@@ -67,8 +67,7 @@ def train():
     losses, losses_val = [], []
     p_accs, iou_accs = [], []
     min_loss = float('inf')
-#     anchor_X, _, anchor_Y = train_dataset[206] #for tensorboardX
-#     anchor_X = anchor_X.unsqueeze_(0) #adding an extra dimension to fake batchsize of 1
+    
     for epoch in range(epochs+1):
         model.train()
         losses_epoch = []
@@ -97,11 +96,6 @@ def train():
         print("Finish epoch {}, time elapsed {:.2f}, loss: {:.3f}".format(epoch, time.time() - ts, losses[-1]))
         losses_val.append(val(epoch))
         
-#         ### Start: TensorboardX extra code
-#         writer.add_scalar('data/train_loss', losses[-1], i)
-#         writer.add_scalar('data/val_loss', losses_val[-1], i)
-#         ## End: TensorboardX extra code
-        
         # Saving model if its the best
         if(min_loss>losses_val[-1]):
             torch.save(model, 'best_model')
@@ -110,14 +104,6 @@ def train():
         if epoch%5 == 0:
             np.save("losses",np.array(losses))
             np.save("losses_val",np.array(losses_val))
-#             ### Start: TensorboardX extra code
-#             pred = model(anchor_X.cuda())
-#             pred_Y = pred.argmax(dim = 1)
-#             pred_Y = pred_Y.cpu().data.numpy()
-#             # Convert to 1D image
-#             writer.add_image('image/actual_Y', anchor_Y, i)
-#             writer.add_image('image/pred_Y', pred_Y[0], i)
-#             ### End: TensorboardX extra code
 
     torch.save(model, 'final_model')
     p_acc,iou_acc = val(epochs,False)
@@ -127,6 +113,9 @@ def train():
 
 def val(epoch,flag = True):
     '''
+    This function tests the model using the validation set.
+    
+    The input epoch tells it at which epoch its performing validation.
     If flag = True, it will only return validation loss
     If flag = False, it will return pixel accuracy and iou accuracy
     '''
@@ -166,8 +155,9 @@ def val(epoch,flag = True):
     
     
 def test():
-    #Complete this function - Calculate accuracy and IoU 
-    # Make sure to include a softmax after the output from your model
+    '''
+    Function to test the model and output the pixel and iou accuracy
+    '''
     p_acc, iou_acc, count = 0, 0, 0
     iou_int, iou_union = [], []
     model.eval()
@@ -195,12 +185,8 @@ def test():
     
     
 if __name__ == "__main__":
-#    val(0)# show the accuracy before training
-#     test()
-#     writer = SummaryWriter('./tensorboard_transfer_learning')
     train()
     print("Testing ")
     pixel_accuracy, iou_accuracy = test()
     print('pixel_accuracy = ', pixel_accuracy)
     print('iou_accuracy = ', iou_accuracy)
-#     writer.close()
