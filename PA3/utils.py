@@ -84,18 +84,31 @@ def pixel_acc2(pred, target):
     total_pixels = target.numel() + .000000000000001
     return torch.tensor(torch.sum(pred.eq(target)).item()/total_pixels)
 
-def one_hot(labels, classes):
-    one_hot = torch.cuda.FloatTensor(labels.size()[0], classes, labels.size()[2], labels.size()[3]).zero_()
-    target = one_hot.scatter_(1, labels.data, 1)
-    return target
+def one_hot(labels, num_classes):
+    one_hot_vec = torch.cuda.FloatTensor(
+        labels.size()[0], 
+        num_classes, 
+        labels.size()[2], 
+        labels.size()[3]).zero_()
+    t = one_hot_vec.scatter_(1, labels.data, 1)
+    return t
 
 class DiceLoss(nn.Module):        
-    def forward(self, output, target):
-        target = one_hot(target.unsqueeze(dim=1), classes=output.size()[1])
-        output = F.softmax(output, dim=1)
-        output_flat = output.contiguous().view(-1)
-        target_flat = target.contiguous().view(-1)
-        intersection = (output_flat * target_flat).sum()
-        loss = 1 - ((2. * intersection + 1) /
-                    (output_flat.sum() + target_flat.sum() + 1))
-        return loss
+    def forward(self, op, t):
+        op = F.softmax(op, dim=1)
+        op_f = op.contiguous().view(-1)
+        t = one_hot(t.unsqueeze(dim=1), num_classes=op.size()[1])
+        t_f = t.contiguous().view(-1)
+        loss = 1 - ((2. * (op_f * t_f).sum() + 1) / (op_f.sum() + t_f.sum() + 1))
+        return loss.mean()
+    
+class GDiceLoss(nn.Module):
+    def forward(self, op, t):
+        t = one_hot(t.unsqueeze(dim=1), num_classes=op.size()[1])
+        op = torch.sigmoid(op)
+        n = torch.sum((op*t), dim=(2, 3))
+        d = torch.sum(op.pow(1)+t.pow(1), dim=(2, 3))
+        n = torch.sum(n, dim=1)
+        d = torch.sum(d, dim=1)
+        loss = 1 - (2*n+1)/(d+1)
+        return loss.mean()

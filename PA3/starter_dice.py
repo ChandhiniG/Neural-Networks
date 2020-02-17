@@ -42,7 +42,7 @@ def init_weights(m):
         
 # Setting parameters and creating the model        
 epochs     = 100
-criterion = nn.CrossEntropyLoss()
+criterion = DiceLoss()
 fcn_model = FCN(n_class=n_class)
 fcn_model.apply(init_weights)
 optimizer = optim.Adam(fcn_model.parameters(), lr=5e-3)

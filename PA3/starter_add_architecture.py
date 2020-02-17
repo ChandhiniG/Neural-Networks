@@ -11,7 +11,7 @@ import argparse
 
 # Apply transformation if needed, only to the train dataset
 transforms_composed = transforms.Compose([transforms.Resize((512,1024))])
-apply_transform = False
+apply_transform = True
 if apply_transform:
     train_dataset = CityScapesDataset(csv_file='train.csv', transforms = transforms_composed)
 else:
@@ -43,7 +43,7 @@ def init_weights(m):
 # Setting parameters and creating the model        
 epochs     = 100
 criterion = nn.CrossEntropyLoss()
-fcn_model = FCN(n_class=n_class)
+fcn_model = FCN_vgg(n_class=n_class)
 fcn_model.apply(init_weights)
 optimizer = optim.Adam(fcn_model.parameters(), lr=5e-3)
 use_gpu = torch.cuda.is_available()
