@@ -1,3 +1,5 @@
+# Training script for UNet
+
 from torchvision import utils
 from unet_fcn import *
 from dataloader import *
@@ -81,7 +83,7 @@ def train():
             if iter % 100 == 0:
                 print("Training --- epoch{}, iter{}, loss: {}".format(epoch, iter, loss.item()))
                 break
-        
+
         print("Finish epoch {}, time elapsed {}".format(epoch, time.time() - ts))
         losses.append(np.mean(np.array(losses_epoch)))
         p_acc,iou_acc = val(epoch)
