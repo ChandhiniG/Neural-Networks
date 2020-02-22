@@ -55,13 +55,10 @@ class Encoder(nn.Module):
 
 #LSTM decoder class
 class DecoderLSTM(nn.Module):
-    def __init__(self, embed_size=4, hidden_size, vocab_size, num_layers=1,embed=True):
+    def __init__(self, embed_size, hidden_size, vocab_size, num_layers=1:
         super().__init__()
         #Embedding layer : TODO: Check if it needed
-        if embed:
-            self.embedding_layer = nn.Embedding(vocab_size, embed_size)
-        else:
-            self.embedding_layer = OneHot(vocab_size)
+        self.embedding_layer = nn.Embedding(vocab_size, embed_size)
         
         self.lstm = nn.LSTM(input_size = embed_size,hidden_size = hidden_size,
                             num_layers = num_layers, batch_first = True)
@@ -69,6 +66,7 @@ class DecoderLSTM(nn.Module):
         self.last_layer = nn.Linear(hidden_size, vocab_size)
     
     def forward(self, features, captions):
+        #TODO: check why the last element is not chosen
         captions = captions[:, :-1]
         embed = self.embedding_layer(captions)
         embed = torch.cat((features.unsqueeze(1), embed), dim = 1)
