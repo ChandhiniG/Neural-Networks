@@ -15,6 +15,9 @@ class Vocabulary():
         except:
             return 99999
         
+    def __len__(self):
+        return len(self.ind2word.keys())
+        
 if __name__ == "__main__":
     # Run 'python build_vocab.py" to pickle the dictionaries so you can use Vocabulary 
     
