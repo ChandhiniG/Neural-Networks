@@ -41,7 +41,10 @@ vocab = Vocabulary()
 
 embed_size = 500
 
-transform = transforms.Compose([transforms.ToTensor()])
+transform = transforms.Compose([transforms.Resize(224),
+                                transforms.CenterCrop(224),
+                                transforms.ToTensor(),
+                            ])
 
 train_loader = get_loader(train_image_directory,
                           train_caption_directory,
