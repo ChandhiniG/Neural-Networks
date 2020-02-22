@@ -20,13 +20,19 @@ train_image_directory = './data/images/train/'
 train_caption_directory = './data/annotations/captions_train2014.json'
 coco_train = COCO(train_caption_directory)
 
-with open('TrainImageIds.csv', 'r') as f:
+with open('TrainIds.csv', 'r') as f:
     reader = csv.reader(f)
     train_ids = list(reader)
 
 train_ids = [int(i) for i in train_ids[0]]
-
 train_ann_ids = coco_train.getAnnIds(train_ids)
+
+with open('ValIds.csv', 'r') as f_val:
+    reader_val = csv.reader(f_val)
+    val_ids = list(reader_val)
+
+val_ids = [int(i) for i in val_ids[0]]
+val_ann_ids = coco_train.getAnnIds(val_ids)
 
 # for i in ids:
 #     if len(coco_train.imgToAnns[i]) > 0: train_ids.append(i)
