@@ -2,6 +2,7 @@ import pickle
 import nltk
 from pycocotools.coco import COCO
 from collections import defaultdict
+import csv
 
 class Vocabulary():
     
@@ -20,14 +21,13 @@ class Vocabulary():
         
 if __name__ == "__main__":
     # Run 'python build_vocab.py" to pickle the dictionaries so you can use Vocabulary 
-    
     coco_train = COCO('./data/annotations/captions_train2014.json')
-    ids = coco_train.getAnnIds()
-    train_ids = []
-    for i in ids:
-        if len(coco_train.imgToAnns[i]) > 0:
-            train_ids.append(i)
-    
+    with open('TrainImageIds.csv', 'r') as f:
+        reader = csv.reader(f)
+        train_ids = list(reader)
+
+    train_ids = [int(i) for i in train_ids[0]]
+
     words = set()
     for img_id in train_ids:
         img_captions = coco_train.imgToAnns[img_id]
