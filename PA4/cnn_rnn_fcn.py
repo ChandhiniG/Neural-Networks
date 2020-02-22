@@ -55,9 +55,8 @@ class Encoder(nn.Module):
 
 #LSTM decoder class
 class DecoderLSTM(nn.Module):
-    def __init__(self, embed_size, hidden_size, vocab_size, num_layers=1:
+    def __init__(self, embed_size, hidden_size, vocab_size, num_layers=1):
         super().__init__()
-        #Embedding layer : TODO: Check if it needed
         self.embedding_layer = nn.Embedding(vocab_size, embed_size)
         
         self.lstm = nn.LSTM(input_size = embed_size,hidden_size = hidden_size,

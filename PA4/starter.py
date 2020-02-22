@@ -3,6 +3,7 @@ import torch.nn as nn
 import os
 import numpy as np
 import nltk
+import csv
 from data_loader import get_loader
 from torchvision import transforms
 import torchvision
@@ -18,10 +19,18 @@ use_gpu = torch.cuda.is_available()
 train_image_directory = './data/images/train/'
 train_caption_directory = './data/annotations/captions_train2014.json'
 coco_train = COCO(train_caption_directory)
-train_ids = []
-ids = coco_train.getAnnIds()
-for i in ids:
-    if len(coco_train.imgToAnns[i]) > 0: train_ids.append(i)
+
+with open('TrainImageIds.csv', 'r') as f:
+    reader = csv.reader(f)
+    train_ids = list(reader)
+
+train_ids = [int(i) for i in train_ids[0]]
+
+train_ann_ids = coco_train.getAnnIds(train_ids)
+
+# for i in ids:
+#     if len(coco_train.imgToAnns[i]) > 0: train_ids.append(i)
+
 vocab = Vocabulary()
 
 embed_size = 500
@@ -30,7 +39,7 @@ transform = transforms.Compose([transforms.ToTensor()])
 
 train_loader = get_loader(train_image_directory,
                           train_caption_directory,
-                          ids= train_ids,
+                          ids= train_ann_ids,
                           vocab= vocab,
                           transform=transform,
                           batch_size=2,
