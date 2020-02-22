@@ -12,21 +12,43 @@ import time
 # from data_loader import *
 from evaluate_captions import *
 
-class CnnRnnModel(nn.Module):
-    def __init__(self):
+def freeze_weights(model):
+    '''
+    Freeze all trainable parameter weights on model
+    '''
+    for param in model.parameters():
+        param.requires_grad_(False)
+    return model
+
+class Encoder(nn.Module):
+    '''
+    Resnet 50 (pretrained) based CNN encoder whose input is an image of size 224x224x3 and output is a
+    vector/embedding of size embed_size
+    '''
+    def __init__(self, embed_size):
+        '''
+        :param embed_size: Size of the output embedding
+        :type embed_size: int
+        '''
         super().__init__()
         # Encoder - Resnet50
-        # TODO: Change out_features for Linear layer according to decoder architect and input image size
         model_pretrained = torchvision.models.resnet50(pretrained=True)
-        # Adding trainable last layer
-        model_pretrained.fc = nn.Linear(in_features=2048, out_features=500, bias=True)
-        self.encoder = model_pretrained
+        model_pretrained = freeze_weights(model_pretrained)
         
-        # Decoder: Defining RNN/LSTM encoder
-        # TODO: self.decoder = 
+        # Extracting all encoding modules from the CNN
+        modules = list(model_pretrained.children())[:-1]
+        self.encoder = nn.Sequential(*modules) #extracting all layers except the last layer
+        
+        # Layer to convert output of CNN to a vector of size embed_size
+        self.embed = nn.Linear(model_pretrained.fc.in_features, embed_size) 
         
     def forward(self, x):
+        '''
+        :param x: tensor of size 224x224x3
+        :type x: torch.Tensor
+        '''
         x = self.encoder(x)
-#         x = self.decoder(x)
+        x = x.view(x.size(0), -1)
+        x = self.embed(x)
         
         return x
