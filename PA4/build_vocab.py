@@ -15,6 +15,9 @@ class Vocabulary():
         except:
             return 99999
         
+    def __len__(self):
+        return len(self.ind2word.keys())
+        
 if __name__ == "__main__":
     # Run 'python build_vocab.py" to pickle the dictionaries so you can use Vocabulary 
     
@@ -33,7 +36,9 @@ if __name__ == "__main__":
         
     words.update(['<start>', '<end>'])
     
-    ind2word = word2ind = {i:v for i,v in enumerate(words)}
+    ind2word = {i:v for i,v in enumerate(words)}
+    ind2word[99999] = '<unk>'
+    
     word2ind = {v:i for i,v in enumerate(words)}
     
     pickle.dump(ind2word, open("ind2worddict", "wb"))
