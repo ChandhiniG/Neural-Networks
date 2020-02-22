@@ -7,9 +7,9 @@ TODO:
     # Tune hyper parameters 
 
 # In Visualising
-    # Stochastic generation -----------------------------------------------------------------Manasa
-    # Deterministic generation--------------------------------------------------------------- Manasa
-    # Check if the model is learning every epoch - print captions every epoch---------------- Manasa
+    # Stochastic generation ----------------------------------------------------------------- Duke
+    # Deterministic generation--------------------------------------------------------------- Duke
+    # Check if the model is learning every epoch - print captions every epoch---------------- Duke
 
 # In structure of the Net (Check 3.1.2 bullet point 2, 3)
     # LSTM cell based on teacher forcing  
@@ -25,7 +25,7 @@ TODO:
     # Perplexity code
 
 # Get the Vanilla RNN code in place 
-# Word3Vec and Glove vectors 
+# Word2Vec and Glove vectors  ----------------------------------------------------------------- Manasa
 # Figure out why the last dimension is left out in our model
 
 
