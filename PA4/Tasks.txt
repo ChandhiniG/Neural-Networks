@@ -1,13 +1,12 @@
-# Change the Vocab to use the right annotations 
-# Validation Train split
-# Change the size to make collate work
-# Figure out why the last dimension is left out in our model
+# Change the Vocab to use the right annotations - Done
+# Change the size to make collate work - Done
 
 # In train 
-    # Check validation loss while training
+    # Validation Train split - Done
+    # Get validation loss while training
     # Save the best model based on validation loss
     # Generate captions code, stochastic and deterministic
-    # Check if the model is learning every epoch  
+    # Check if the model is learning every epoch - print captions every epoch
     # Figure out the teacher forced part in train
     # Store validation and training loss at each epoch
 
@@ -22,3 +21,4 @@
 
 # Get the RNN code in place 
 # Figure out the word2vec part 
+# Figure out why the last dimension is left out in our model
