@@ -1,0 +1,24 @@
+# Change the Vocab to use the right annotations 
+# Validation Train split
+# Change the size to make collate work
+# Figure out why the last dimension is left out in our model
+
+# In train 
+    # Check validation loss while training
+    # Save the best model based on validation loss
+    # Generate captions code, stochastic and deterministic
+    # Check if the model is learning every epoch  
+    # Figure out the teacher forced part in train
+    # Store validation and training loss at each epoch
+
+# In test
+    # Save the caption for each of the test image ids to a file, 
+    # Report cross entropy loss and perplexity score
+
+# Metrics
+    # Training Validation curves
+    # Sanity check BLEU score code provided 
+    # Perplexity code
+
+# Get the RNN code in place 
+# Figure out the word2vec part 
