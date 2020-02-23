@@ -12,7 +12,7 @@ TODO:
     # Check if the model is learning every epoch - print captions every epoch---------------- Duke
 
 # In structure of the Net (Check 3.1.2 bullet point 2, 3)
-    # LSTM cell based on feeding previous prediction  
+    # LSTM cell based on feeding previous prediction ---------------------------------------- Sutej
 
 # In test
     # Save the caption for each of the test image ids to a file
