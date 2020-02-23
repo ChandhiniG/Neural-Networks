@@ -27,12 +27,10 @@ TODO:
 
 # Word Vectors
     # Word2Vec and Glove vectors  ----------------------------------------------------------------- Manasa
+    # Convert from feature to sentence
 
 # Others
     # Figure out why the last dimension is left out in our model
-
-
-
 
 DONE
 1. Change the Vocab to create dictionary from only the annotations from train: Duke
