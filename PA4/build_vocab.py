@@ -34,12 +34,14 @@ if __name__ == "__main__":
         captions = map(lambda x:x['caption'], img_captions)
         [words.update(nltk.tokenize.word_tokenize(str(c).lower())) for c in captions]
         
-    words.update(['<start>', '<end>'])
+#     words.update(['<start>', '<end>'])
     
-    ind2word = {i:v for i,v in enumerate(words)}
+    ind2word = {i+2:v for i,v in enumerate(words)}
+    ind2word[0] = '<start>'
+    ind2word[1] = '<end>'
     ind2word[99999] = '<unk>'
     
-    word2ind = {v:i for i,v in enumerate(words)}
+    word2ind = {v: k for k, v in ind2word.items()}
     
     pickle.dump(ind2word, open("ind2worddict", "wb"))
     pickle.dump(word2ind, open("word2inddict", "wb"))
