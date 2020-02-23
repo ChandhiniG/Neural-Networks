@@ -182,12 +182,8 @@ def test():
     perplexities_test = []
     ts = time.time()
     for iter, (images, captions, length) in enumerate(test_loader):
-        if use_gpu:
-            images = images.cuda()
-            captions = captions.cuda()
-        else:
-            images = images.cpu()
-            captions = captions.cpu()
+        images = images.to(device)
+        captions = captions.to(device)
            
         with torch.no_grad():
             image_features = encoder(images)
