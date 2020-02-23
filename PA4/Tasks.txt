@@ -13,7 +13,6 @@ TODO:
 
 # In structure of the Net (Check 3.1.2 bullet point 2, 3)
     # LSTM cell based on teacher forcing  
-    # LSTM cell based on feeding previous prediction  
     # Get the Vanilla RNN code in place 
 
 # In test
@@ -27,6 +26,7 @@ TODO:
 
 # Word Vectors
     # Word2Vec and Glove vectors  ----------------------------------------------------------------- Manasa
+    # Convert from feature to sentence
 
 # Others
     # Figure out why the last dimension is left out in our model
