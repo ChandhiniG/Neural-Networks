@@ -12,6 +12,7 @@ from torch.nn.utils.rnn import pack_padded_sequence
 from build_vocab import Vocabulary
 from pycocotools.coco import COCO
 from cnn_rnn_fcn import *
+import time
 
 
 use_gpu = torch.cuda.is_available()
@@ -20,19 +21,13 @@ train_image_directory = './data/images/train/'
 train_caption_directory = './data/annotations/captions_train2014.json'
 coco_train = COCO(train_caption_directory)
 
-with open('TrainIds.csv', 'r') as f:
+with open('TrainImageIds.csv', 'r') as f:
     reader = csv.reader(f)
     train_ids = list(reader)
 
 train_ids = [int(i) for i in train_ids[0]]
+
 train_ann_ids = coco_train.getAnnIds(train_ids)
-
-with open('ValIds.csv', 'r') as f_val:
-    reader_val = csv.reader(f_val)
-    val_ids = list(reader_val)
-
-val_ids = [int(i) for i in val_ids[0]]
-val_ann_ids = coco_train.getAnnIds(val_ids)
 
 # for i in ids:
 #     if len(coco_train.imgToAnns[i]) > 0: train_ids.append(i)
@@ -55,7 +50,7 @@ train_loader = get_loader(train_image_directory,
                           shuffle=True,
                           num_workers=10)
 
-epochs = 1
+epochs = 5
 #instantiate the models
 encoder = Encoder(embed_size)
 #TODO This
@@ -73,31 +68,56 @@ optimizer = optim.Adam(params, lr=5e-3)
 
 
 def train():
+    losses = []
+    losses_val = []
+    min_loss = 100
     for epoch in range(epochs):
+        ts = time.time()
+        losses_epoch = []
         for iter, (images, captions, length) in enumerate(train_loader):
+            encoder.train()
+            decoder.train()
             encoder.zero_grad()
             decoder.zero_grad()
-            print(images.shape)
 
-#             if use_gpu:
-#                 images = images.cuda()
-#                 captions = captions.cuda()
-#             else:
-#                 images = images.cpu()
-#                 captions = captions.cpu()
-#                 targets= pack_padded_sequence(captions, lengths, batch_first=True)[0]
-
-#                 #forward
-#                 image_features = encoder(images)
-#                 output_caption = decoder(image_features, captions, length)
-#                 loss = criterion(outputs, target)
-#                 loss.backward()
-#                 optimizer.step()
-
-                #compare with val loss and save the best model
+            if use_gpu:
+                images = images.cuda()
+                captions = captions.cuda()
+            else:
+                images = images.cpu()
+                captions = captions.cpu()
+            
+            targets= pack_padded_sequence(captions, length, batch_first=True).data
+            #forward
+            image_features = encoder(images)
+            output_caption = decoder(image_features, captions)
+            output_caption = pack_padded_sequence(output_caption, length, batch_first=True).data
+            loss = criterion(output_caption, targets)
+            losses_epoch.append(loss.item())
+            loss.backward()
+            optimizer.step()
+             # compare with val loss and save the best model
+            if iter % 100 == 0:
+                print("epoch{}, iter{}, loss: {}".format(epoch, iter, loss.item()))
+        
+        print("Finish epoch {}, time elapsed {}".format(epoch, time.time() - ts))
+        losses.append(np.mean(np.array(losses_epoch)))
+        losses_val.append(val(epoch))
+        if(min_loss>losses_val[-1]):
+            torch.save(encoder, 'best_model_encoder')
+            torch.save(decoder, 'best_model_decoder')
+            min_loss = losses_val[-1]
+        if epoch%10 == 0:
+            np.save("losses",np.array(losses))
+            np.save("losses_val",np.array(losses_val))
+            torch.save(encoder, 'inter_encoder_%d' %(epoch))
+            torch.save(decoder, 'inter_decoder_%d' %(epoch))
     
-    #save the final model
-
+    torch.save(encoder, 'final_model_encoder')
+    torch.save(decoder, 'final_model_decoder')
+    
+def val(epoch):
+    pass
     
     
 if __name__ =="__main__":
