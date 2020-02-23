@@ -29,6 +29,14 @@ train_ids = [int(i) for i in train_ids[0]]
 
 train_ann_ids = coco_train.getAnnIds(train_ids)
 
+with open('ValIds.csv', 'r') as f_val:
+    reader_val = csv.reader(f_val)
+    val_ids = list(reader_val)
+
+val_ids = [int(i) for i in val_ids[0]]
+val_ann_ids = coco_train.getAnnIds(val_ids)
+
+
 # for i in ids:
 #     if len(coco_train.imgToAnns[i]) > 0: train_ids.append(i)
 
@@ -44,6 +52,15 @@ transform = transforms.Compose([transforms.Resize(224),
 train_loader = get_loader(train_image_directory,
                           train_caption_directory,
                           ids= train_ann_ids,
+                          vocab= vocab,
+                          transform=transform,
+                          batch_size=2,
+                          shuffle=True,
+                          num_workers=10)
+
+val_loader = get_loader(train_image_directory,
+                          train_caption_directory,
+                          ids= val_ann_ids,
                           vocab= vocab,
                           transform=transform,
                           batch_size=2,
@@ -74,9 +91,9 @@ def train():
     for epoch in range(epochs):
         ts = time.time()
         losses_epoch = []
+        encoder.train()
+        decoder.train()
         for iter, (images, captions, length) in enumerate(train_loader):
-            encoder.train()
-            decoder.train()
             encoder.zero_grad()
             decoder.zero_grad()
 
@@ -99,7 +116,7 @@ def train():
              # compare with val loss and save the best model
             if iter % 100 == 0:
                 print("epoch{}, iter{}, loss: {}".format(epoch, iter, loss.item()))
-        
+
         print("Finish epoch {}, time elapsed {}".format(epoch, time.time() - ts))
         losses.append(np.mean(np.array(losses_epoch)))
         losses_val.append(val(epoch))
@@ -117,7 +134,27 @@ def train():
     torch.save(decoder, 'final_model_decoder')
     
 def val(epoch):
-    pass
+    losses_val = []
+    ts = time.time()
+    for iter, (images, captions, length) in enumerate(val_loader):
+        if use_gpu:
+            images = images.cuda()
+            captions = captions.cuda()
+        else:
+            images = images.cpu()
+            captions = captions.cpu()
+           
+        with torch.no_grad():
+            image_features = encoder(images)
+            output_caption = decoder(image_features, captions)
+        
+        targets= pack_padded_sequence(captions, length, batch_first=True).data
+        output_caption = pack_padded_sequence(output_caption, length, batch_first=True).data
+        losses_val.append(criterion(output_caption, targets).item())
+    loss_mean = np.mean(np.array(losses_val))
+    print("Validation loss, Epoch "+str(epoch)+":"+ str(loss_mean))
+    return loss_mean
+    
     
     
 if __name__ =="__main__":
