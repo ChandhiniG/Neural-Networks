@@ -57,7 +57,7 @@ class DecoderLSTM(nn.Module):
     '''
     LSTM Decoder class.
     '''
-    def __init__(self, embed_size, hidden_size, vocab_size, num_layers=1):
+    def __init__(self, embed_size, hidden_size, vocab_size, num_layers=1, end_index=1):
         super().__init__()
         self.embedding_layer = nn.Embedding(vocab_size, embed_size)
         
@@ -65,6 +65,8 @@ class DecoderLSTM(nn.Module):
                             num_layers = num_layers, batch_first = True)
         
         self.last_layer = nn.Linear(hidden_size, vocab_size)
+        self.end_index = end_index
+        self.softmax = torch.nn.Softmax()
     
     def forward(self, features, captions):
         #TODO: check why the last element is not chosen
@@ -75,6 +77,20 @@ class DecoderLSTM(nn.Module):
         out = self.last_layer(lstm_outputs)
         
         return out
+    
+    def generate(self,features,sample=False,max_len=40):
+        output = []
+        cur_len = 0
+        cur_idx = 0
+        while(cur_len<max_len && cur_idx!=self.end_index):
+            lstm_output,states = self.lstm(features)
+            print(outputs.size)
+            if sample:
+                outputs = self.softmax(outputs)
+                
+            else:
+                cur_idx = torch.argmax(outputs)
+            
 
 class DecoderRNN(nn.Module):
     '''
