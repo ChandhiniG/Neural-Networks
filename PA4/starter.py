@@ -17,24 +17,30 @@ import time
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 train_image_directory = './data/images/train/'
+test_image_directory = './data/images/test/'
 train_caption_directory = './data/annotations/captions_train2014.json'
+test_caption_directory = './data/annotations/captions_val2014.json'
+
 coco_train = COCO(train_caption_directory)
+coco_test = COCO(test_caption_directory)
 
 with open('TrainImageIds.csv', 'r') as f:
     reader = csv.reader(f)
     train_ids = list(reader)
-
 train_ids = [int(i) for i in train_ids[0]]
-
 train_ann_ids = coco_train.getAnnIds(train_ids)
 
 with open('ValIds.csv', 'r') as f_val:
     reader_val = csv.reader(f_val)
     val_ids = list(reader_val)
-
 val_ids = [int(i) for i in val_ids[0]]
 val_ann_ids = coco_train.getAnnIds(val_ids)
 
+with open('TestImageIds.csv', 'r') as f_test:
+    reader_test = csv.reader(f_test)
+    test_ids = list(reader_test)
+test_ids = [int(i) for i in test_ids[0]]
+test_ann_ids = coco_test.getAnnIds(test_ids)
 
 # for i in ids:
 #     if len(coco_train.imgToAnns[i]) > 0: train_ids.append(i)
@@ -43,16 +49,17 @@ vocab = Vocabulary()
 
 embed_size = 500
 
-transform = transforms.Compose([transforms.Resize(224),
+transform_train = transforms.Compose([transforms.Resize(224),
                                 transforms.CenterCrop(224),
                                 transforms.ToTensor(),
                             ])
+transform_test = transforms.Compose([transforms.ToTensor()])
 
 train_loader = get_loader(train_image_directory,
                           train_caption_directory,
                           ids= train_ann_ids,
                           vocab= vocab,
-                          transform=transform,
+                          transform=transform_train,
                           batch_size=2,
                           shuffle=True,
                           num_workers=10)
@@ -61,8 +68,17 @@ val_loader = get_loader(train_image_directory,
                           train_caption_directory,
                           ids= val_ann_ids,
                           vocab= vocab,
-                          transform=transform,
+                          transform=transform_train,
                           batch_size=2,
+                          shuffle=True,
+                          num_workers=10)
+
+test_loader = get_loader(test_image_directory,
+                          test_caption_directory,
+                          ids= test_ann_ids,
+                          vocab= vocab,
+                          transform=transform_test,
+                          batch_size=1,
                           shuffle=True,
                           num_workers=10)
 
@@ -138,6 +154,8 @@ def train():
     torch.save(encoder, 'final_model_encoder')
     torch.save(decoder, 'final_model_decoder')
     
+    
+    
 def val(epoch):
     losses_val = []
     ts = time.time()
@@ -155,8 +173,39 @@ def val(epoch):
     loss_mean = np.mean(np.array(losses_val))
     print("Validation loss, Epoch "+str(epoch)+":"+ str(loss_mean))
     return loss_mean
+  
     
     
+def test():
+    # TODO: Load the best model in encoder decoder
+    losses_test = []
+    perplexities_test = []
+    ts = time.time()
+    for iter, (images, captions, length) in enumerate(test_loader):
+        if use_gpu:
+            images = images.cuda()
+            captions = captions.cuda()
+        else:
+            images = images.cpu()
+            captions = captions.cpu()
+           
+        with torch.no_grad():
+            image_features = encoder(images)
+            output_caption = decoder(image_features, captions)
+       
+        targets= pack_padded_sequence(captions, length, batch_first=True).data
+        output_caption = pack_padded_sequence(output_caption, length, batch_first=True).data
+        # TODO: get the sentence generated for every image and store it in a file
+        loss_image = criterion(output_caption, targets).item()
+        losses_test.append(loss_image)
+        perplexities_test.append(np.exp(loss_image))
+       
+    l_mean = np.mean(np.array(losses_test))
+    p_mean = np.mean(np.array(perplexities_test))
+    return l_mean, p_mean
     
 if __name__ =="__main__":
     train()
+    #TODO : Fix test error in loss calculation
+#     l, p = test()
+#     print("loss mean , perplecity mean for test" , l, p)
