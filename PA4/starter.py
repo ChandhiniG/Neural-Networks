@@ -14,8 +14,7 @@ from pycocotools.coco import COCO
 from cnn_rnn_fcn import *
 import time
 
-
-use_gpu = torch.cuda.is_available()
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 train_image_directory = './data/images/train/'
 train_caption_directory = './data/annotations/captions_train2014.json'
@@ -72,10 +71,9 @@ epochs = 5
 encoder = Encoder(embed_size)
 #TODO This
 decoder = DecoderLSTM(500, 256, len(vocab))
-if use_gpu:
-    encoder = encoder.cuda()
-    decoder = decoder.cuda()
 
+encoder = encoder.to(device)
+decoder = decoder.to(device)
     
 criterion = nn.CrossEntropyLoss()
 #assuming the last layer in the encoder is defined as self.linear 
@@ -85,9 +83,11 @@ optimizer = optim.Adam(params, lr=5e-3)
 
 
 def train():
-    losses = []
-    losses_val = []
-    min_loss = 100
+    '''
+    Train the image captioning model made of a CNN + RNN/LSTM.
+    '''
+    losses, losses_val = [], []
+    min_loss = float('inf') # Setting min_loss to a big value to compare later
     for epoch in range(epochs):
         ts = time.time()
         losses_epoch = []
@@ -96,40 +96,45 @@ def train():
         for iter, (images, captions, length) in enumerate(train_loader):
             encoder.zero_grad()
             decoder.zero_grad()
-
-            if use_gpu:
-                images = images.cuda()
-                captions = captions.cuda()
-            else:
-                images = images.cpu()
-                captions = captions.cpu()
             
-            targets= pack_padded_sequence(captions, length, batch_first=True).data
-            #forward
+            images   = images.to(device)
+            captions = captions.to(device)
+            targets  = pack_padded_sequence(captions, length, batch_first=True).data
+            
+            # Feed forward through CNN encoder and RNN decoder
             image_features = encoder(images)
             output_caption = decoder(image_features, captions)
+            
+            # Pack padding the output from decoder so that it matches the padded targets
             output_caption = pack_padded_sequence(output_caption, length, batch_first=True).data
+            
+            # Calculating loss, gradients, and updating weights
             loss = criterion(output_caption, targets)
             losses_epoch.append(loss.item())
             loss.backward()
             optimizer.step()
-             # compare with val loss and save the best model
+            
             if iter % 100 == 0:
                 print("epoch{}, iter{}, loss: {}".format(epoch, iter, loss.item()))
 
         print("Finish epoch {}, time elapsed {}".format(epoch, time.time() - ts))
         losses.append(np.mean(np.array(losses_epoch)))
         losses_val.append(val(epoch))
+        
+        # Saving best model till now
         if(min_loss>losses_val[-1]):
             torch.save(encoder, 'best_model_encoder')
             torch.save(decoder, 'best_model_decoder')
             min_loss = losses_val[-1]
+        
+        # Saving train/val losses and encoder/decoder every 10 epochs
         if epoch%10 == 0:
             np.save("losses",np.array(losses))
             np.save("losses_val",np.array(losses_val))
             torch.save(encoder, 'inter_encoder_%d' %(epoch))
             torch.save(decoder, 'inter_decoder_%d' %(epoch))
     
+    # Saving model after all epochs are over
     torch.save(encoder, 'final_model_encoder')
     torch.save(decoder, 'final_model_decoder')
     
@@ -137,12 +142,8 @@ def val(epoch):
     losses_val = []
     ts = time.time()
     for iter, (images, captions, length) in enumerate(val_loader):
-        if use_gpu:
-            images = images.cuda()
-            captions = captions.cuda()
-        else:
-            images = images.cpu()
-            captions = captions.cpu()
+        images   = images.to(device)
+        captions = captions.to(device)
            
         with torch.no_grad():
             image_features = encoder(images)
