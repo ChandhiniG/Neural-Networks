@@ -14,6 +14,7 @@ TODO:
 # In structure of the Net (Check 3.1.2 bullet point 2, 3)
     # LSTM cell based on teacher forcing  
     # LSTM cell based on feeding previous prediction  
+    # Get the Vanilla RNN code in place 
 
 # In test
     # Save the caption for each of the test image ids to a file
@@ -24,9 +25,11 @@ TODO:
     # Sanity check BLEU score code provided 
     # Perplexity code
 
-# Get the Vanilla RNN code in place 
-# Word2Vec and Glove vectors  ----------------------------------------------------------------- Manasa
-# Figure out why the last dimension is left out in our model
+# Word Vectors
+    # Word2Vec and Glove vectors  ----------------------------------------------------------------- Manasa
+
+# Others
+    # Figure out why the last dimension is left out in our model
 
 
 
