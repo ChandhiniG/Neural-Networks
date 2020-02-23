@@ -12,13 +12,11 @@ TODO:
     # Check if the model is learning every epoch - print captions every epoch---------------- Duke
 
 # In structure of the Net (Check 3.1.2 bullet point 2, 3)
-    # LSTM cell based on teacher forcing  
     # LSTM cell based on feeding previous prediction  
 
 # In test
     # Save the caption for each of the test image ids to a file
     # Report cross entropy loss and perplexity score
-    # Converting a vector of numbers to a string---------------------------------------------- Sutej
 
 # Metrics
     # Training Validation curves
@@ -27,10 +25,7 @@ TODO:
 
 # Word Vectors
     # Word2Vec and Glove vectors  ----------------------------------------------------------------- Manasa
-    # Convert from feature to sentence
-
-# Others
-    # Figure out why the last dimension is left out in our model
+    # Convert from feature to sentence ------------------------------------------------------------ Duke
 
 DONE
 1. Change the Vocab to create dictionary from only the annotations from train: Duke
@@ -38,5 +33,6 @@ DONE
 3. Validation Train 80-20 split: Sutej
 4. Figure out why the last dimension is left out in our mode: Sutej
 5. Get the Vanilla RNN code in place: Adnan 
+6. LSTM cell based on teacher forcing: Sutej  
 
 
