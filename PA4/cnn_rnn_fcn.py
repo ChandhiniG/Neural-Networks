@@ -53,8 +53,10 @@ class Encoder(nn.Module):
 #         x = self.decoder(x)      
         return x
 
-#LSTM decoder class
 class DecoderLSTM(nn.Module):
+    '''
+    LSTM Decoder class.
+    '''
     def __init__(self, embed_size, hidden_size, vocab_size, num_layers=1):
         super().__init__()
         self.embedding_layer = nn.Embedding(vocab_size, embed_size)
@@ -71,5 +73,28 @@ class DecoderLSTM(nn.Module):
         embed = torch.cat((features.unsqueeze(1), embed), dim = 1)
         lstm_outputs, _ = self.lstm(embed)
         out = self.last_layer(lstm_outputs)
+        
+        return out
+
+class DecoderRNN(nn.Module):
+    '''
+    Vanilla RNN decoder.
+    '''
+    def __init__(self, embed_size, hidden_size, vocab_size, num_layers=1):
+        super().__init__()
+        self.embedding_layer = nn.Embedding(vocab_size, embed_size)
+        
+        self.rnn = nn.RNN(input_size = embed_size,hidden_size = hidden_size,
+                            num_layers = num_layers, batch_first = True)
+        
+        self.last_layer = nn.Linear(hidden_size, vocab_size)
+    
+    def forward(self, features, captions):
+        #TODO: check why the last element is not chosen
+        captions = captions[:, :-1]
+        embed = self.embedding_layer(captions)
+        embed = torch.cat((features.unsqueeze(1), embed), dim = 1)
+        rnn_outputs, _ = self.rnn(embed)
+        out = self.last_layer(rnn_outputs)
         
         return out
