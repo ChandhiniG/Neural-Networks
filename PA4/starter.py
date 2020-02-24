@@ -49,8 +49,6 @@ test_ann_ids = coco_test.getAnnIds(test_ids)
 
 vocab = Vocabulary()
 
-embed_size = 500
-
 transform_train = transforms.Compose([transforms.Resize(224),
                                 transforms.CenterCrop(224),
                                 transforms.ToTensor(),
@@ -62,7 +60,7 @@ train_loader = get_loader(train_image_directory,
                           ids= train_ann_ids,
                           vocab= vocab,
                           transform=transform_train,
-                          batch_size=2,
+                          batch_size=32,
                           shuffle=True,
                           num_workers=10)
 
@@ -71,7 +69,7 @@ val_loader = get_loader(train_image_directory,
                           ids= val_ann_ids,
                           vocab= vocab,
                           transform=transform_train,
-                          batch_size=2,
+                          batch_size=32,
                           shuffle=True,
                           num_workers=10)
 
@@ -80,7 +78,7 @@ test_loader = get_loader(test_image_directory,
                           ids= test_ann_ids,
                           vocab= vocab,
                           transform=transform_test,
-                          batch_size=1,
+                          batch_size=32,
                           shuffle=True,
                           num_workers=10)
 
@@ -90,11 +88,10 @@ end_id = vocab.word2ind['<end>']
 print("end_idx:",end_id)
 
 #instantiate the models
-encoder = Encoder(embed_size)
-#TODO This
-embedding_size = 300
+embed_size = 300
 hidden_size = 512
-decoder = DecoderLSTM(embedding_size, hidden_size, len(vocab),end_index=end_id)
+encoder = Encoder(embed_size)
+decoder = DecoderLSTM(embed_size, hidden_size, len(vocab),end_index=end_id)
 
 encoder = encoder.to(device)
 decoder = decoder.to(device)
