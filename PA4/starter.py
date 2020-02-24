@@ -27,7 +27,7 @@ test_caption_directory = './data/annotations/captions_val2014.json'
 coco_train = COCO(train_caption_directory)
 coco_test = COCO(test_caption_directory)
 
-with open('TrainImageIds.csv', 'r') as f:
+with open('TrainIds.csv', 'r') as f:
     reader = csv.reader(f)
     train_ids = list(reader)
 train_ids = [int(i) for i in train_ids[0]]
@@ -100,7 +100,7 @@ decoder = decoder.to(device)
 criterion = nn.CrossEntropyLoss()
 #assuming the last layer in the encoder is defined as self.linear 
 params = list(encoder.embed.parameters()) + list(decoder.parameters())
-optimizer = optim.Adam(params, lr=1e-3)
+optimizer = optim.Adam(params, lr=5e-3)
 
 
 
