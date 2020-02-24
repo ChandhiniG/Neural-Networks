@@ -119,3 +119,23 @@ class DecoderRNN(nn.Module):
         out = self.last_layer(rnn_outputs)
         
         return out
+    
+    def generate(self,features,sample=False,max_len=20):
+        batch_sz = features.size()[0]
+        output = [[] for i in range(batch_sz)]
+        cur_idx = 0
+        states = None
+        features = features.unsqueeze(1)
+        while(len(output[0])<max_len):
+            rnn_outputs,states = self.rnn(features,states)
+            out = self.last_layer(rnn_outputs)
+            if sample:
+                out = self.softmax(out)
+                m = torch.distributions.Categorical(out)
+                cur_idx = m.sample()
+            else:
+                cur_idx = out.argmax(2)
+            for i in range(batch_sz):
+                output[i].append(cur_idx[i].item())
+            features = self.embedding_layer(cur_idx)
+        return output
