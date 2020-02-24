@@ -52,6 +52,29 @@ def indices2sentence(indices):
     s = " "
     return s.join(caption)
 
+def generate_captions(batch_output, batch_meta_data):
+    '''
+    Writes a json file to disk containing captions generated for each image specified by its image_id
+    
+    :param indices: list of lists containing output indices
+    :type indices: list of list
+    '''
+    # Storing a list of dictionaries where the ith entry of the list is a dictionary 
+    # that contains the image_id and caption for that image in the batch
+    generated_caption = []
+    for output, meta_data in zip(batch_output, batch_meta_data):
+        sentence = indices2sentence(output)
+        generate_captions.append[{
+                                'image_id': meta_data['image_id'],
+                                'caption': sentence,
+                                }]
+    
+    # Storing list to disk as json file
+    with open('./generated_captions.json', 'w') as f_out:
+        json.dump(generate_captions, f_out)
+    
+    return
+
 if __name__ == '__main__':
     # How to use found below
     
