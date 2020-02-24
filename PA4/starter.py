@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import os
+import datetime
 import numpy as np
 import nltk
 import csv
@@ -82,7 +83,7 @@ test_loader = get_loader(test_image_directory,
                           shuffle=True,
                           num_workers=10)
 
-epochs = 10
+epochs = 100
 
 end_id = vocab.word2ind['<end>']
 print("end_idx:",end_id)
@@ -105,8 +106,14 @@ optimizer = optim.Adam(params, lr=1e-3)
 
 def train():
     '''
-    Train the image captioning model made of a CNN + RNN/LSTM.
+    1. Train the image captioning model made of a CNN + RNN/LSTM.
+    2. Save the train/val loss, model every 10 epochs (inter_model), best model, and final_model
     '''
+    # Creating timestamped folder to store all outputs of train
+    folder_name = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+    mydir = os.path.join(os.getcwd(), folder_name)
+    os.makedirs(mydir)
+    
     losses, losses_val = [], []
     min_loss = float('inf') # Setting min_loss to a big value to compare later
     for epoch in range(epochs):
@@ -117,7 +124,6 @@ def train():
         for iter, (images, captions, length, _) in enumerate(train_loader):
             encoder.zero_grad()
             decoder.zero_grad()
-            
             images   = images.to(device)
             captions = captions.to(device)
             targets  = pack_padded_sequence(captions, length, batch_first=True).data
@@ -134,7 +140,7 @@ def train():
             losses_epoch.append(loss.item())
             loss.backward()
             optimizer.step()
-            
+
             if iter % 300 == 0:
                 print("epoch{}, iter{}, loss: {}".format(epoch, iter, loss.item()))
         
@@ -144,20 +150,20 @@ def train():
         
         # Saving best model till now
         if(min_loss>losses_val[-1]):
-            torch.save(encoder, 'best_model_encoder')
-            torch.save(decoder, 'best_model_decoder')
+            torch.save(encoder, mydir + '/best_model_encoder')
+            torch.save(decoder, mydir + '/best_model_decoder')
             min_loss = losses_val[-1]
         
         # Saving train/val losses and encoder/decoder every 10 epochs
         if epoch%10 == 0:
-            np.save("losses",np.array(losses))
-            np.save("losses_val",np.array(losses_val))
-            torch.save(encoder, 'inter_encoder_%d' %(epoch))
-            torch.save(decoder, 'inter_decoder_%d' %(epoch))
+            np.save(mydir + "/losses",np.array(losses))
+            np.save(mydir + "/losses_val",np.array(losses_val))
+            torch.save(encoder, mydir + '/inter_encoder_%d' %(epoch))
+            torch.save(decoder, mydir + '/inter_decoder_%d' %(epoch))
     
     # Saving model after all epochs are over
-    torch.save(encoder, 'final_model_encoder')
-    torch.save(decoder, 'final_model_decoder')
+    torch.save(encoder, mydir + '/final_model_encoder')
+    torch.save(decoder, mydir + '/final_model_decoder')
     
     
     
