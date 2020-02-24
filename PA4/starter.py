@@ -14,6 +14,8 @@ from pycocotools.coco import COCO
 from cnn_rnn_fcn import *
 import time
 
+torch.manual_seed(0)
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 train_image_directory = './data/images/train/'
@@ -83,14 +85,18 @@ test_loader = get_loader(test_image_directory,
                           num_workers=10)
 
 epochs = 5
+
+end_id = vocab.word2ind['<end>']
+print("end_idx:",end_id)
+
 #instantiate the models
 encoder = Encoder(embed_size)
 #TODO This
-decoder = DecoderLSTM(500, 256, len(vocab))
+decoder = DecoderLSTM(500, 256, len(vocab),end_index=end_id)
 
 encoder = encoder.to(device)
 decoder = decoder.to(device)
-    
+
 criterion = nn.CrossEntropyLoss()
 #assuming the last layer in the encoder is defined as self.linear 
 params = list(encoder.embed.parameters()) + list(decoder.parameters())
@@ -119,6 +125,10 @@ def train():
             
             # Feed forward through CNN encoder and RNN decoder
             image_features = encoder(images)
+            
+            out_vec = decoder.generate(image_features)
+            print(out_vec)
+            break
             output_caption = decoder(image_features, captions)
             
             # Pack padding the output from decoder so that it matches the padded targets
