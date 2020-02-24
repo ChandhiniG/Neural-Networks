@@ -14,6 +14,8 @@ from pycocotools.coco import COCO
 from cnn_rnn_fcn import *
 import time
 
+torch.manual_seed(0)
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 train_image_directory = './data/images/train/'
@@ -47,8 +49,6 @@ test_ann_ids = coco_test.getAnnIds(test_ids)
 
 vocab = Vocabulary()
 
-embed_size = 500
-
 transform_train = transforms.Compose([transforms.Resize(224),
                                 transforms.CenterCrop(224),
                                 transforms.ToTensor(),
@@ -60,7 +60,7 @@ train_loader = get_loader(train_image_directory,
                           ids= train_ann_ids,
                           vocab= vocab,
                           transform=transform_train,
-                          batch_size=64,
+                          batch_size=32,
                           shuffle=True,
                           num_workers=10)
 
@@ -69,7 +69,7 @@ val_loader = get_loader(train_image_directory,
                           ids= val_ann_ids,
                           vocab= vocab,
                           transform=transform_train,
-                          batch_size=64,
+                          batch_size=32,
                           shuffle=True,
                           num_workers=10)
 
@@ -78,23 +78,28 @@ test_loader = get_loader(test_image_directory,
                           ids= test_ann_ids,
                           vocab= vocab,
                           transform=transform_test,
-                          batch_size=1,
+                          batch_size=32,
                           shuffle=True,
                           num_workers=10)
 
 epochs = 10
+
+end_id = vocab.word2ind['<end>']
+print("end_idx:",end_id)
+
 #instantiate the models
+embed_size = 300
+hidden_size = 512
 encoder = Encoder(embed_size)
-#TODO This
-decoder = DecoderLSTM(500, 256, len(vocab))
+decoder = DecoderLSTM(embed_size, hidden_size, len(vocab),end_index=end_id)
 
 encoder = encoder.to(device)
 decoder = decoder.to(device)
-    
+
 criterion = nn.CrossEntropyLoss()
 #assuming the last layer in the encoder is defined as self.linear 
 params = list(encoder.embed.parameters()) + list(decoder.parameters())
-optimizer = optim.Adam(params, lr=5e-3)
+optimizer = optim.Adam(params, lr=1e-3)
 
 
 

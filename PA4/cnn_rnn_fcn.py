@@ -66,10 +66,9 @@ class DecoderLSTM(nn.Module):
         
         self.last_layer = nn.Linear(hidden_size, vocab_size)
         self.end_index = end_index
-        self.softmax = torch.nn.Softmax()
+        self.softmax = torch.nn.Softmax(dim=2)
     
     def forward(self, features, captions):
-        #TODO: check why the last element is not chosen
         captions = captions[:, :-1]
         embed = self.embedding_layer(captions)
         embed = torch.cat((features.unsqueeze(1), embed), dim = 1)
@@ -78,19 +77,25 @@ class DecoderLSTM(nn.Module):
         
         return out
     
-    def generate(self,features,sample=False,max_len=40):
-        output = []
-        cur_len = 0
+    def generate(self,features,sample=False,max_len=20):
+        batch_sz = features.size()[0]
+        output = [[] for i in range(batch_sz)]
         cur_idx = 0
-        while(cur_len<max_len and cur_idx!=self.end_index):
-            lstm_output,states = self.lstm(features)
-            print(outputs.size)
+        states = None
+        features = features.unsqueeze(1)
+        while(len(output[0])<max_len):
+            lstm_outputs,states = self.lstm(features,states)
+            out = self.last_layer(lstm_outputs)
             if sample:
-                outputs = self.softmax(outputs)
-                
+                out = self.softmax(out)
+                m = torch.distributions.Categorical(out)
+                cur_idx = m.sample()
             else:
-                cur_idx = torch.argmax(outputs)
-            
+                cur_idx = out.argmax(2)
+            for i in range(batch_sz):
+                output[i].append(cur_idx[i].item())
+            features = self.embedding_layer(cur_idx)
+        return output
 
 class DecoderRNN(nn.Module):
     '''
@@ -114,3 +119,23 @@ class DecoderRNN(nn.Module):
         out = self.last_layer(rnn_outputs)
         
         return out
+    
+    def generate(self,features,sample=False,max_len=20):
+        batch_sz = features.size()[0]
+        output = [[] for i in range(batch_sz)]
+        cur_idx = 0
+        states = None
+        features = features.unsqueeze(1)
+        while(len(output[0])<max_len):
+            rnn_outputs,states = self.rnn(features,states)
+            out = self.last_layer(rnn_outputs)
+            if sample:
+                out = self.softmax(out)
+                m = torch.distributions.Categorical(out)
+                cur_idx = m.sample()
+            else:
+                cur_idx = out.argmax(2)
+            for i in range(batch_sz):
+                output[i].append(cur_idx[i].item())
+            features = self.embedding_layer(cur_idx)
+        return output
