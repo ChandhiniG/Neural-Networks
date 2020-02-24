@@ -66,7 +66,7 @@ class DecoderLSTM(nn.Module):
         
         self.last_layer = nn.Linear(hidden_size, vocab_size)
         self.end_index = end_index
-        self.softmax = torch.nn.Softmax()
+        self.softmax = torch.nn.Softmax(dim=2)
     
     def forward(self, features, captions):
         captions = captions[:, :-1]
@@ -88,8 +88,8 @@ class DecoderLSTM(nn.Module):
             out = self.last_layer(lstm_outputs)
             if sample:
                 out = self.softmax(out)
-                m = Categorical(out)
-                curr_idx = m.sample()  
+                m = torch.distributions.Categorical(out)
+                cur_idx = m.sample()
             else:
                 cur_idx = out.argmax(2)
             for i in range(batch_sz):

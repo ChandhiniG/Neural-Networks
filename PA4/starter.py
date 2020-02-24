@@ -125,10 +125,6 @@ def train():
             
             # Feed forward through CNN encoder and RNN decoder
             image_features = encoder(images)
-            
-            out_vec = decoder.generate(image_features)
-            print(out_vec)
-            break
             output_caption = decoder(image_features, captions)
             
             # Pack padding the output from decoder so that it matches the padded targets
