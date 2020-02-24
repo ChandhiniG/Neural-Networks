@@ -82,7 +82,7 @@ class DecoderLSTM(nn.Module):
         output = []
         cur_len = 0
         cur_idx = 0
-        while(cur_len<max_len && cur_idx!=self.end_index):
+        while(cur_len<max_len and cur_idx!=self.end_index):
             lstm_output,states = self.lstm(features)
             print(outputs.size)
             if sample:
