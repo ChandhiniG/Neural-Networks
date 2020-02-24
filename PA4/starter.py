@@ -60,7 +60,7 @@ train_loader = get_loader(train_image_directory,
                           ids= train_ann_ids,
                           vocab= vocab,
                           transform=transform_train,
-                          batch_size=32,
+                          batch_size=64,
                           shuffle=True,
                           num_workers=10)
 
@@ -69,7 +69,7 @@ val_loader = get_loader(train_image_directory,
                           ids= val_ann_ids,
                           vocab= vocab,
                           transform=transform_train,
-                          batch_size=32,
+                          batch_size=64,
                           shuffle=True,
                           num_workers=10)
 
@@ -78,7 +78,7 @@ test_loader = get_loader(test_image_directory,
                           ids= test_ann_ids,
                           vocab= vocab,
                           transform=transform_test,
-                          batch_size=32,
+                          batch_size=64,
                           shuffle=True,
                           num_workers=10)
 
