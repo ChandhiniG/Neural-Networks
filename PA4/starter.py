@@ -84,7 +84,7 @@ test_loader = get_loader(test_image_directory,
                           shuffle=True,
                           num_workers=10)
 
-epochs = 5
+epochs = 100
 
 end_id = vocab.word2ind['<end>']
 print("end_idx:",end_id)
@@ -92,7 +92,9 @@ print("end_idx:",end_id)
 #instantiate the models
 encoder = Encoder(embed_size)
 #TODO This
-decoder = DecoderLSTM(500, 256, len(vocab),end_index=end_id)
+embedding_size = 300
+hidden_size = 512
+decoder = DecoderLSTM(embedding_size, hidden_size, len(vocab),end_index=end_id)
 
 encoder = encoder.to(device)
 decoder = decoder.to(device)
@@ -100,7 +102,7 @@ decoder = decoder.to(device)
 criterion = nn.CrossEntropyLoss()
 #assuming the last layer in the encoder is defined as self.linear 
 params = list(encoder.embed.parameters()) + list(decoder.parameters())
-optimizer = optim.Adam(params, lr=5e-3)
+optimizer = optim.Adam(params, lr=1e-3)
 
 
 
