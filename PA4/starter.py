@@ -60,7 +60,7 @@ train_loader = get_loader(train_image_directory,
                           ids= train_ann_ids,
                           vocab= vocab,
                           transform=transform_train,
-                          batch_size=2,
+                          batch_size=64,
                           shuffle=True,
                           num_workers=10)
 
@@ -69,7 +69,7 @@ val_loader = get_loader(train_image_directory,
                           ids= val_ann_ids,
                           vocab= vocab,
                           transform=transform_train,
-                          batch_size=2,
+                          batch_size=64,
                           shuffle=True,
                           num_workers=10)
 
@@ -82,7 +82,7 @@ test_loader = get_loader(test_image_directory,
                           shuffle=True,
                           num_workers=10)
 
-epochs = 5
+epochs = 10
 #instantiate the models
 encoder = Encoder(embed_size)
 #TODO This
@@ -109,7 +109,7 @@ def train():
         losses_epoch = []
         encoder.train()
         decoder.train()
-        for iter, (images, captions, length) in enumerate(train_loader):
+        for iter, (images, captions, length, _) in enumerate(train_loader):
             encoder.zero_grad()
             decoder.zero_grad()
             
@@ -130,12 +130,12 @@ def train():
             loss.backward()
             optimizer.step()
             
-            if iter % 100 == 0:
+            if iter % 300 == 0:
                 print("epoch{}, iter{}, loss: {}".format(epoch, iter, loss.item()))
-
-        print("Finish epoch {}, time elapsed {}".format(epoch, time.time() - ts))
+        
         losses.append(np.mean(np.array(losses_epoch)))
         losses_val.append(val(epoch))
+        print("Finish epoch {}, time elapsed: {:.2f}, loss: {:.4f}".format(epoch, time.time() - ts, losses[-1]))
         
         # Saving best model till now
         if(min_loss>losses_val[-1]):
@@ -159,7 +159,7 @@ def train():
 def val(epoch):
     losses_val = []
     ts = time.time()
-    for iter, (images, captions, length) in enumerate(val_loader):
+    for iter, (images, captions, length, _) in enumerate(val_loader):
         images   = images.to(device)
         captions = captions.to(device)
            
@@ -181,7 +181,7 @@ def test():
     losses_test = []
     perplexities_test = []
     ts = time.time()
-    for iter, (images, captions, length) in enumerate(test_loader):
+    for iter, (images, captions, length, meta_data) in enumerate(test_loader):
         images = images.to(device)
         captions = captions.to(device)
            
