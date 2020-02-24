@@ -1,31 +1,24 @@
 TODO:
 
 # In train 
-    # Code the validation function ----------------------------------------------------  Chandhini
-    # Save the best model based on validation loss------------------------------------------- Chandhini
-    # Store validation and training loss at each epoch -------------------------------------- Chandhini
     # Tune hyper parameters 
 
 # In Visualising
-    # Stochastic generation ----------------------------------------------------------------- Duke
-    # Deterministic generation--------------------------------------------------------------- Duke
     # Check if the model is learning every epoch - print captions every epoch---------------- Duke
 
 # In structure of the Net (Check 3.1.2 bullet point 2, 3)
-    # LSTM cell based on feeding previous prediction ---------------------------------------- Sutej
+
 
 # In test
-    # Save the caption for each of the test image ids to a file
+    # Save the caption for each of the test image ids to a file ------------------------------ Adnan
     # Report cross entropy loss and perplexity score
 
 # Metrics
-    # Training Validation curves
     # Sanity check BLEU score code provided 
     # Perplexity code
 
 # Word Vectors
     # Word2Vec and Glove vectors  ----------------------------------------------------------------- Manasa
-    # Convert from feature to sentence ------------------------------------------------------------ Duke
 
 DONE
 1. Change the Vocab to create dictionary from only the annotations from train: Duke
@@ -34,5 +27,11 @@ DONE
 4. Figure out why the last dimension is left out in our mode: Sutej
 5. Get the Vanilla RNN code in place: Adnan 
 6. LSTM cell based on teacher forcing: Sutej  
-
-
+7. Convert from feature to sentence: Duke
+8. Stochastic generation: Duke,Sutej
+9. Deterministic generation: Duke,Sutej
+10.LSTM cell based on feeding previous prediction: Sutej
+11.Code the validation function:Chandhini
+12.Save the best model based on validation loss:Chandhini
+13.Store validation and training loss at each epoch:Chandhini
+14.Training Validation curves
