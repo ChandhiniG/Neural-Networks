@@ -6,9 +6,15 @@ import csv
 
 class Vocabulary():
     
-    def __init__(self):
-        self.word2ind = pickle.load(open("word2inddict2", "rb"))
-        self.ind2word = pickle.load(open("ind2worddict2", "rb"))
+    def __init__(self, version=2):
+        if version == 1:
+            # use big vocab
+            self.word2ind = pickle.load(open("word2inddict", "rb"))
+            self.ind2word = pickle.load(open("ind2worddict", "rb"))
+        else:
+            # use small vocab
+            self.word2ind = pickle.load(open("word2inddict2", "rb"))
+            self.ind2word = pickle.load(open("ind2worddict2", "rb"))
         
     def __call__(self, word):
         if not word in self.word2ind:
