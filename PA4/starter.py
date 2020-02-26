@@ -49,10 +49,10 @@ test_ann_ids = coco_test.getAnnIds(test_ids)
 ###-------------- Start: Hyper parameters ----------------
 learning_rate = 5e-3
 batch_size = 64
-epochs = 1
+epochs = 30
 embed_size = 300
 hidden_size = 512
-extra_notes = ''
+extra_notes = 'dropout = 0.3 for LSTM in cnn_rnn_model.py'
 
 config = {
 	'learning_rate': learning_rate,
@@ -66,9 +66,12 @@ config = {
 
 vocab = Vocabulary()
 
-transform_train = transforms.Compose([transforms.Resize(224),
+transform_train = transforms.Compose([
+                                transforms.Resize(224),
                                 transforms.CenterCrop(224),
                                 transforms.ToTensor(),
+                                transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                                      std=[0.229, 0.224, 0.225]),
                             ])
 transform_test = transforms.Compose([transforms.ToTensor()])
 
@@ -105,7 +108,7 @@ print("end_idx:",end_id)
 
 #instantiate the models
 encoder = Encoder(embed_size)
-decoder = DecoderLSTM(embed_size, hidden_size, len(vocab),end_index=end_id)
+decoder = DecoderLSTM(embed_size, hidden_size, len(vocab), end_index=end_id)
 
 encoder = encoder.to(device)
 decoder = decoder.to(device)

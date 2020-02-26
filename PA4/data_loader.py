@@ -39,11 +39,13 @@ class CocoDataset(data.Dataset):
                     'image_id': img_id,
                     'annotation_id': ann_id,
                     }
-
+        # Open image
         image = Image.open(os.path.join(self.root, path)).convert('RGB')
+        
+        # Apply transformations if any
         if self.transform is not None:
             image = self.transform(image)
-
+        
         # Convert caption (string) to word ids.
         tokens = nltk.tokenize.word_tokenize(str(caption).lower())
         caption = []
