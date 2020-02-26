@@ -5,6 +5,7 @@ import datetime
 import numpy as np
 import nltk
 import csv
+import json
 from data_loader import get_loader
 from torchvision import transforms
 import torchvision
@@ -27,7 +28,7 @@ test_caption_directory = './data/annotations/captions_val2014.json'
 coco_train = COCO(train_caption_directory)
 coco_test = COCO(test_caption_directory)
 
-with open('TrainImageIds.csv', 'r') as f:
+with open('TrainIds.csv', 'r') as f:
     reader = csv.reader(f)
     train_ids = list(reader)
 train_ids = [int(i) for i in train_ids[0]]
@@ -45,8 +46,23 @@ with open('TestImageIds.csv', 'r') as f_test:
 test_ids = [int(i) for i in test_ids[0]]
 test_ann_ids = coco_test.getAnnIds(test_ids)
 
-# for i in ids:
-#     if len(coco_train.imgToAnns[i]) > 0: train_ids.append(i)
+###-------------- Start: Hyper parameters ----------------
+learning_rate = 5e-3
+batch_size = 64
+epochs = 40
+embed_size = 300
+hidden_size = 512
+extra_notes = ''
+
+config = {
+	'learning_rate': learning_rate,
+	'batch_size': batch_size,
+	'epochs': epochs,
+	'embed_size': embed_size,
+	'hidden_size': hidden_size,
+	'extra_notes': extra_notes,
+	}
+###-------------- End: Hyper parameters ----------------
 
 vocab = Vocabulary()
 
@@ -61,7 +77,7 @@ train_loader = get_loader(train_image_directory,
                           ids= train_ann_ids,
                           vocab= vocab,
                           transform=transform_train,
-                          batch_size=64,
+                          batch_size=batch_size,
                           shuffle=True,
                           num_workers=10)
 
@@ -70,7 +86,7 @@ val_loader = get_loader(train_image_directory,
                           ids= val_ann_ids,
                           vocab= vocab,
                           transform=transform_train,
-                          batch_size=64,
+                          batch_size=batch_size,
                           shuffle=True,
                           num_workers=10)
 
@@ -79,18 +95,15 @@ test_loader = get_loader(test_image_directory,
                           ids= test_ann_ids,
                           vocab= vocab,
                           transform=transform_test,
-                          batch_size=64,
+                          batch_size=batch_size,
                           shuffle=True,
                           num_workers=10)
 
-epochs = 100
 
 end_id = vocab.word2ind['<end>']
 print("end_idx:",end_id)
 
 #instantiate the models
-embed_size = 300
-hidden_size = 512
 encoder = Encoder(embed_size)
 decoder = DecoderLSTM(embed_size, hidden_size, len(vocab),end_index=end_id)
 
@@ -100,7 +113,7 @@ decoder = decoder.to(device)
 criterion = nn.CrossEntropyLoss()
 #assuming the last layer in the encoder is defined as self.linear 
 params = list(encoder.embed.parameters()) + list(decoder.parameters())
-optimizer = optim.Adam(params, lr=1e-3)
+optimizer = optim.Adam(params, lr=learning_rate,weight_decay=0.0001)
 
 
 
@@ -109,11 +122,15 @@ def train():
     1. Train the image captioning model made of a CNN + RNN/LSTM.
     2. Save the train/val loss, model every 10 epochs (inter_model), best model, and final_model
     '''
+    print('Config of training is: \n {}'.format(config))
     # Creating timestamped folder to store all outputs of train
     folder_name = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
     mydir = os.path.join(os.getcwd(), folder_name)
     os.makedirs(mydir)
-    
+    # Saving config file
+    with open(mydir+'/config.json', 'w') as f_out:
+        json.dump(config, f_out)
+
     losses, losses_val = [], []
     min_loss = float('inf') # Setting min_loss to a big value to compare later
     for epoch in range(epochs):
