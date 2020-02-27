@@ -3,7 +3,23 @@ import nltk
 from pycocotools.coco import COCO
 from collections import defaultdict
 import csv
+import numpy as np
+import torch
 
+def get_glove(word2ind, path, embedding_dim=50):
+    with open(path) as f:
+        embeddings = np.zeros((len(word2ind), embedding_dim))
+        # Going over glove embeddings, checking if the word is present in our vocab, 
+        # if present find it's index and replace that index in the matrix with the embedding
+        for line in f.readlines():
+            values = line.split()    
+            word = values[0]
+            index = word2ind.get(word)
+            if index:
+                vector = np.array(values[1:], dtype='float32')
+                embeddings[index] = vector
+        return torch.from_numpy(embeddings).float()
+    
 class Vocabulary():
     
     def __init__(self, version=1):

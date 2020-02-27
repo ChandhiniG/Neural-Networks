@@ -57,13 +57,16 @@ class DecoderLSTM(nn.Module):
     '''
     LSTM Decoder class.
     '''
-    def __init__(self, embed_size, hidden_size, vocab_size, num_layers=1, end_index=1):
+    def __init__(self, embed_size, hidden_size, vocab_size, num_layers=1, end_index=1, embeddings = None):
         super().__init__()
-        self.embedding_layer = nn.Embedding(vocab_size, embed_size)
+        if embeddings:
+            self.embedding_layer = nn.Embedding.from_pretrained(embeddings)
+            self.embedding_layer.requires_grad = False
+        else:
+            self.embedding_layer = nn.Embedding(vocab_size, embed_size)
         
         self.lstm = nn.LSTM(input_size = embed_size,hidden_size = hidden_size,
                             num_layers = num_layers, batch_first = True)
-        
         self.last_layer = nn.Linear(hidden_size, vocab_size)
         self.end_index = end_index
         self.softmax = torch.nn.Softmax(dim=2)

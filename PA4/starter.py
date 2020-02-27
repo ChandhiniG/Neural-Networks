@@ -17,6 +17,8 @@ from cnn_rnn_fcn import *
 import time
 from generate_results import generate_captions
 from evaluate_captions import evaluate_captions
+from build_vocab import Vocabulary, get_glove
+
 
 torch.manual_seed(0)
 
@@ -70,7 +72,7 @@ vocab = Vocabulary(2)
 
 transform_train = transforms.Compose([
                                 transforms.Resize(224),
-                                transforms.CenterCrop(224),
+                                transforms.RandomCrop(224),
                                 transforms.ToTensor(),
                                 transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                                       std=[0.229, 0.224, 0.225]),
@@ -108,9 +110,17 @@ test_loader = get_loader(test_image_directory,
 end_id = vocab.word2ind['<end>']
 print("end_idx:",end_id)
 
+# Getting pre-trained embeddings
+use_glove = False
+if use_glove:
+    embeddings = get_glove(vocab.word2ind, 'glove.6B.50d.txt')  
+    
 #instantiate the models
 encoder = Encoder(embed_size)
-decoder = DecoderLSTM(embed_size, hidden_size, len(vocab), end_index=end_id)
+if use_glove:
+    decoder = DecoderLSTM(embed_size, hidden_size, len(vocab), end_index=end_id, embeddings = embeddings)
+else:
+    decoder = DecoderLSTM(embed_size, hidden_size, len(vocab), end_index=end_id)
 
 encoder = encoder.to(device)
 decoder = decoder.to(device)
@@ -121,9 +131,6 @@ params = list(encoder.embed.parameters()) + list(decoder.parameters())
 
 optimizer = optim.Adam(params, lr=learning_rate,weight_decay=1e-5)
 # optimizer = optim.Adam(params, lr=learning_rate)
-
-
-
 
 def train():
     '''
@@ -251,3 +258,4 @@ if __name__ =="__main__":
         print("Sampling:",sample," with temperature:",i)
         l_mean, p_mean, BLEU1, BLEU4 = test(sample,i)
         print("loss_mean:",l_mean,"perplexities_mean:",p_mean,"\n BELU1:",BLEU1," BELU 4", BLEU4)
+
