@@ -10,7 +10,7 @@ from torch.autograd import Variable
 import time
 
 # from data_loader import *
-from evaluate_captions import *
+# from evaluate_captions import *
 
 def freeze_weights(model):
     '''

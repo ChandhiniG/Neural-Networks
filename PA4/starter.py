@@ -15,6 +15,7 @@ from build_vocab import Vocabulary
 from pycocotools.coco import COCO
 from cnn_rnn_fcn import *
 import time
+from generate_results import generate_captions
 
 torch.manual_seed(0)
 
@@ -47,11 +48,11 @@ test_ids = [int(i) for i in test_ids[0]]
 test_ann_ids = coco_test.getAnnIds(test_ids)
 
 ###-------------- Start: Hyper parameters ----------------
-learning_rate = 1e-3
+learning_rate = 1e-5
 batch_size = 64
-epochs = 40
+epochs = 50
 embed_size = 300
-hidden_size = 512
+hidden_size = 256
 extra_notes = ''
 
 config = {
@@ -97,10 +98,10 @@ test_loader = get_loader(test_image_directory,
                           test_caption_directory,
                           ids= test_ann_ids,
                           vocab= vocab,
-                          transform=transform_test,
+                          transform=transform_train,
                           batch_size=batch_size,
                           shuffle=True,
-                          num_workers=10)
+                          num_workers=5)
 
 
 end_id = vocab.word2ind['<end>']
@@ -211,7 +212,9 @@ def val(epoch):
     
     
 def test():
-    # TODO: Load the best model in encoder decoder
+    encoder = torch.load('./2020-02-26_15-43-45/best_model_encoder')
+    decoder = torch.load('./2020-02-26_15-43-45/best_model_decoder')
+    
     losses_test = []
     perplexities_test = []
     ts = time.time()
@@ -221,11 +224,11 @@ def test():
            
         with torch.no_grad():
             image_features = encoder(images)
+            generate_captions(decoder.generate(image_features), meta_data)
             output_caption = decoder(image_features, captions)
        
         targets= pack_padded_sequence(captions, length, batch_first=True).data
-        output_caption = pack_padded_sequence(output_caption, length, batch_first=True).data
-        # TODO: get the sentence generated for every image and store it in a file
+        output_caption = pack_padded_sequence(output_caption, length, batch_first=True).data        
         loss_image = criterion(output_caption, targets).item()
         losses_test.append(loss_image)
         perplexities_test.append(np.exp(loss_image))
@@ -235,7 +238,8 @@ def test():
     return l_mean, p_mean
     
 if __name__ =="__main__":
-    train()
+    # train()
     #TODO : Fix test error in loss calculation
 #     l, p = test()
 #     print("loss mean , perplecity mean for test" , l, p)
+    test()
