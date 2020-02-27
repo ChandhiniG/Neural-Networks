@@ -8,6 +8,7 @@ from pycocotools.coco import COCO
 from torchvision import transforms
 from data_loader import get_loader
 from cnn_rnn_fcn import *
+import json
 
 vocab = Vocabulary()
 
@@ -48,9 +49,13 @@ def stochastic_generate(network_output, images, image_save='False', device='cpu'
     return batch_images, batch_inds
 
 def indices2sentence(indices):
-    caption = [vocab.ind2word[c] for c in indices]
-    s = " "
-    return s.join(caption)
+    caption = []
+    for c in indices[1:]:
+        if vocab.ind2word[c] == "<end>":
+            break
+        else:
+            caption.append(vocab.ind2word[c])          
+    return " ".join(caption)
 
 def generate_captions(batch_output, batch_meta_data):
     '''
@@ -61,17 +66,18 @@ def generate_captions(batch_output, batch_meta_data):
     '''
     # Storing a list of dictionaries where the ith entry of the list is a dictionary 
     # that contains the image_id and caption for that image in the batch
-    generated_caption = []
+    generated_captions = []
     for output, meta_data in zip(batch_output, batch_meta_data):
+        
         sentence = indices2sentence(output)
-        generate_captions.append[{
-                                'image_id': meta_data['image_id'],
+        generated_captions.append({
+                                'image_id': int(meta_data['image_id']),
                                 'caption': sentence,
-                                }]
-    
+                                })
+        
     # Storing list to disk as json file
     with open('./generated_captions.json', 'w') as f_out:
-        json.dump(generate_captions, f_out)
+        json.dump(generated_captions, f_out)
     
     return
 
@@ -145,4 +151,4 @@ if __name__ == '__main__':
     imgs, inds = stochastic_generate(output_caption, images, device='cpu')
     plt.imshow(imgs[1])
     print(indices2sentence(inds[1]))
-
+    

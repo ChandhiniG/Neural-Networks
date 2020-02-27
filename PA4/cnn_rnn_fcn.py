@@ -10,7 +10,7 @@ from torch.autograd import Variable
 import time
 
 # from data_loader import *
-from evaluate_captions import *
+# from evaluate_captions import *
 
 def freeze_weights(model):
     '''
@@ -97,6 +97,7 @@ class DecoderLSTM(nn.Module):
             features = self.embedding_layer(cur_idx)
         return output
 
+
 class DecoderRNN(nn.Module):
     '''
     Vanilla RNN decoder.
@@ -111,7 +112,6 @@ class DecoderRNN(nn.Module):
         self.last_layer = nn.Linear(hidden_size, vocab_size)
     
     def forward(self, features, captions):
-        #TODO: check why the last element is not chosen
         captions = captions[:, :-1]
         embed = self.embedding_layer(captions)
         embed = torch.cat((features.unsqueeze(1), embed), dim = 1)

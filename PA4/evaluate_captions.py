@@ -17,6 +17,7 @@ def evaluate_captions( true_captions_path, generated_captions_path ):
     coco = COCO(true_captions_path)
     cocoRes = coco.loadRes(generated_captions_path)
     
+    
     score1 = 0
     score4 = 0
 
@@ -47,3 +48,5 @@ pred_annotations_file = 'baseline_lstm_captions.json'
 
 BLEU1, BLEU4 = evaluate_captions( true_annotations_file, pred_annotations_file )
 """
+
+BLEU1, BLEU4 = evaluate_captions('./data/annotations/captions_val2014.json','generated_captions.json')
