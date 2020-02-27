@@ -16,6 +16,7 @@ from pycocotools.coco import COCO
 from cnn_rnn_fcn import *
 import time
 from generate_results import generate_captions
+from evaluate_captions import evaluate_captions
 
 torch.manual_seed(0)
 
@@ -65,7 +66,7 @@ config = {
 	}
 ###-------------- End: Hyper parameters ----------------
 
-vocab = Vocabulary()
+vocab = Vocabulary(2)
 
 transform_train = transforms.Compose([
                                 transforms.Resize(224),
@@ -101,7 +102,7 @@ test_loader = get_loader(test_image_directory,
                           transform=transform_train,
                           batch_size=batch_size,
                           shuffle=True,
-                          num_workers=5)
+                          num_workers=10)
 
 
 end_id = vocab.word2ind['<end>']
@@ -211,10 +212,12 @@ def val(epoch):
   
     
     
-def test():
-    encoder = torch.load('./2020-02-26_09-29-17/best_model_encoder')
-    decoder = torch.load('./2020-02-26_09-29-17/best_model_decoder')
-    
+def test(sample,temp):
+    encoder = torch.load('./2020-02-26_23-49-55/best_model_encoder')
+    decoder1 = torch.load('./2020-02-26_23-49-55/best_model_decoder')
+    for decoder_param, param in zip(decoder.parameters(), decoder1.parameters()):
+        decoder_param.data.copy_(param.data)
+        
     losses_test = []
     perplexities_test = []
     ts = time.time()
@@ -224,7 +227,7 @@ def test():
            
         with torch.no_grad():
             image_features = encoder(images)
-            generate_captions(decoder.generate(image_features), meta_data)
+            generate_captions(decoder.generate(image_features,sample=sample,temperature=temp), meta_data)
             output_caption = decoder(image_features, captions)
        
         targets= pack_padded_sequence(captions, length, batch_first=True).data
@@ -235,11 +238,16 @@ def test():
        
     l_mean = np.mean(np.array(losses_test))
     p_mean = np.mean(np.array(perplexities_test))
-    return l_mean, p_mean
+    BLEU1, BLEU4 = evaluate_captions('./data/annotations/captions_val2014.json','generated_captions.json')
+    return l_mean, p_mean, BLEU1, BLEU4
     
 if __name__ =="__main__":
-    # train()
-    #TODO : Fix test error in loss calculation
-#     l, p = test()
-#     print("loss mean , perplecity mean for test" , l, p)
-    test()
+#     train()
+# #     #TODO : Fix test error in loss calculation
+# # #     l, p = test()
+# # #     print("loss mean , perplecity mean for test" , l, p)
+    for i in [0.1, 0.2, 0.7, 1, 1.5, 2]:
+        sample = True
+        print("Sampling:",sample," with temperature:",i)
+        l_mean, p_mean, BLEU1, BLEU4 = test(sample,i)
+        print("loss_mean:",l_mean,"perplexities_mean:",p_mean,"\n BELU1:",BLEU1," BELU 4", BLEU4)

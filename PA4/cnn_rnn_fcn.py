@@ -77,7 +77,7 @@ class DecoderLSTM(nn.Module):
         
         return out
     
-    def generate(self,features,sample=False,max_len=20):
+    def generate(self,features,sample=False,max_len=20,temperature=1):
         batch_sz = features.size()[0]
         output = [[] for i in range(batch_sz)]
         cur_idx = 0
@@ -87,7 +87,7 @@ class DecoderLSTM(nn.Module):
             lstm_outputs,states = self.lstm(features,states)
             out = self.last_layer(lstm_outputs)
             if sample:
-                out = self.softmax(out)
+                out = self.softmax(out/temperature)
                 m = torch.distributions.Categorical(out)
                 cur_idx = m.sample()
             else:
@@ -120,7 +120,7 @@ class DecoderRNN(nn.Module):
         
         return out
     
-    def generate(self,features,sample=False,max_len=20):
+    def generate(self,features,sample=False,max_len=20,temperature=1):
         batch_sz = features.size()[0]
         output = [[] for i in range(batch_sz)]
         cur_idx = 0
@@ -130,7 +130,7 @@ class DecoderRNN(nn.Module):
             rnn_outputs,states = self.rnn(features,states)
             out = self.last_layer(rnn_outputs)
             if sample:
-                out = self.softmax(out)
+                out = self.softmax(out/temperature)
                 m = torch.distributions.Categorical(out)
                 cur_idx = m.sample()
             else:
