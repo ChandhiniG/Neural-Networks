@@ -16,6 +16,7 @@ from pycocotools.coco import COCO
 from cnn_rnn_fcn import *
 import time
 from generate_results import generate_captions
+from build_vocab import Vocabulary, get_glove
 
 torch.manual_seed(0)
 
@@ -48,11 +49,11 @@ test_ids = [int(i) for i in test_ids[0]]
 test_ann_ids = coco_test.getAnnIds(test_ids)
 
 ###-------------- Start: Hyper parameters ----------------
-learning_rate = 1e-5
+learning_rate = 2e-5
 batch_size = 64
-epochs = 50
-embed_size = 300
-hidden_size = 256
+epochs = 100
+embed_size = 50
+hidden_size = 512
 extra_notes = ''
 
 config = {
@@ -69,7 +70,7 @@ vocab = Vocabulary()
 
 transform_train = transforms.Compose([
                                 transforms.Resize(224),
-                                transforms.CenterCrop(224),
+                                transforms.RandomCrop(224),
                                 transforms.ToTensor(),
                                 transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                                       std=[0.229, 0.224, 0.225]),
@@ -107,9 +108,17 @@ test_loader = get_loader(test_image_directory,
 end_id = vocab.word2ind['<end>']
 print("end_idx:",end_id)
 
+# Getting pre-trained embeddings
+use_glove = False
+if use_glove:
+    embeddings = get_glove(vocab.word2ind, 'glove.6B.50d.txt')  
+    
 #instantiate the models
 encoder = Encoder(embed_size)
-decoder = DecoderLSTM(embed_size, hidden_size, len(vocab), end_index=end_id)
+if use_glove:
+    decoder = DecoderLSTM(embed_size, hidden_size, len(vocab), end_index=end_id, embeddings = embeddings)
+else:
+    decoder = DecoderLSTM(embed_size, hidden_size, len(vocab), end_index=end_id)
 
 encoder = encoder.to(device)
 decoder = decoder.to(device)
@@ -119,8 +128,7 @@ criterion = nn.CrossEntropyLoss()
 params = list(encoder.embed.parameters()) + list(decoder.parameters())
 
 # optimizer = optim.Adam(params, lr=learning_rate,weight_decay=0.0001)
-optimizer = optim.Adam(params, lr=learning_rate)
-
+optimizer = optim.Adam(params, lr=learning_rate, weight_decay = 1e-5)
 
 
 
@@ -238,7 +246,7 @@ def test():
     return l_mean, p_mean
     
 if __name__ =="__main__":
-    # train()
+    train()
     #TODO : Fix test error in loss calculation
 #     l, p = test()
 #     print("loss mean , perplecity mean for test" , l, p)
