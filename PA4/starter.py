@@ -103,7 +103,7 @@ test_loader = get_loader(test_image_directory,
                           vocab= vocab,
                           transform=transform_train,
                           batch_size=batch_size,
-                          shuffle=True,
+                          shuffle=False,
                           num_workers=10)
 
 
@@ -227,22 +227,23 @@ def test(sample,temp):
         
     losses_test = []
     perplexities_test = []
+    generated_captions = []
+    meta_data_list = []
     ts = time.time()
     for iter, (images, captions, length, meta_data) in enumerate(test_loader):
         images = images.to(device)
         captions = captions.to(device)
-           
+        meta_data_list +=meta_data
         with torch.no_grad():
             image_features = encoder(images)
-            generate_captions(decoder.generate(image_features,sample=sample,temperature=temp), meta_data)
+            generated_captions += decoder.generate(image_features,sample=sample,temperature=temp)
             output_caption = decoder(image_features, captions)
-       
         targets= pack_padded_sequence(captions, length, batch_first=True).data
         output_caption = pack_padded_sequence(output_caption, length, batch_first=True).data        
         loss_image = criterion(output_caption, targets).item()
         losses_test.append(loss_image)
         perplexities_test.append(np.exp(loss_image))
-       
+    generate_captions(generated_captions, meta_data_list)
     l_mean = np.mean(np.array(losses_test))
     p_mean = np.mean(np.array(perplexities_test))
     BLEU1, BLEU4 = evaluate_captions('./data/annotations/captions_val2014.json','generated_captions.json')
@@ -253,7 +254,7 @@ if __name__ =="__main__":
 # #     #TODO : Fix test error in loss calculation
 # # #     l, p = test()
 # # #     print("loss mean , perplecity mean for test" , l, p)
-    for i in [0.1, 0.2, 0.7, 1, 1.5, 2]:
+    for i in [0.1, 0.2, 0.4, 0.7, 1.0, 1.5, 2.0]:
         sample = True
         print("Sampling:",sample," with temperature:",i)
         l_mean, p_mean, BLEU1, BLEU4 = test(sample,i)
