@@ -104,7 +104,7 @@ test_loader = get_loader(test_image_directory,
                           transform=transform_train,
                           batch_size=batch_size,
                           shuffle=False,
-                          num_workers=10)
+                          num_workers=4)
 
 
 end_id = vocab.word2ind['<end>']
@@ -241,11 +241,11 @@ def test(sample,temp):
         targets= pack_padded_sequence(captions, length, batch_first=True).data
         output_caption = pack_padded_sequence(output_caption, length, batch_first=True).data        
         loss_image = criterion(output_caption, targets).item()
-        losses_test.append(loss_image)
-        perplexities_test.append(np.exp(loss_image))
+        losses_test.append(loss_image*len(meta_data))
+        perplexities_test.append(np.exp(loss_image)*len(meta_data))
     generate_captions(generated_captions, meta_data_list)
-    l_mean = np.mean(np.array(losses_test))
-    p_mean = np.mean(np.array(perplexities_test))
+    l_mean = np.sum(np.array(losses_test))/len(meta_data_list)
+    p_mean = np.sum(np.array(perplexities_test))/len(meta_data_list)
     BLEU1, BLEU4 = evaluate_captions('./data/annotations/captions_val2014.json','generated_captions.json')
     return l_mean, p_mean, BLEU1, BLEU4
     
@@ -255,7 +255,7 @@ if __name__ =="__main__":
 # # #     l, p = test()
 # # #     print("loss mean , perplecity mean for test" , l, p)
     for i in [0.1, 0.2, 0.4, 0.7, 1.0, 1.5, 2.0]:
-        sample = True
+        sample = False
         print("Sampling:",sample," with temperature:",i)
         l_mean, p_mean, BLEU1, BLEU4 = test(sample,i)
         print("loss_mean:",l_mean,"perplexities_mean:",p_mean,"\n BELU1:",BLEU1," BELU 4", BLEU4)
