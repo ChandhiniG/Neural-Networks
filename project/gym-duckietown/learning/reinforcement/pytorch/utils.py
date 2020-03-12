@@ -56,9 +56,13 @@ class ReplayBuffer(object):
             "done": np.stack(dones).reshape(-1,1)
         }
 
-    def save_buffer(self):
-        with open('replay_buffer.pkl', 'wb') as f:
+    def save_buffer(self, mydir):
+        with open(mydir + 'replay_buffer.pkl', 'wb') as f:
             pickle.dump(self.storage, f)
+
+    def load_buffer(self, mydir):
+        with open(mydir + 'replay_buffer.pkl', 'rb') as f:
+            self.storage = pickle.load(f)
 
 def evaluate_policy(env, policy, eval_episodes=10, max_timesteps=500):
     avg_reward = 0.

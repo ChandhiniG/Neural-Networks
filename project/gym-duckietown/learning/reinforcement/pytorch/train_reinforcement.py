@@ -152,6 +152,6 @@ if __name__ == '__main__':
     parser.add_argument("--target_action_noise", default=0.1, type=float)
     parser.add_argument("--clip_range", default=0.3, type=float)
 
-    algorithm = "TD3"
-    # algorithm = "DDPG"
+    # algorithm = "TD3"
+    algorithm = "DDPG"
     _train(parser.parse_args(), algorithm)
