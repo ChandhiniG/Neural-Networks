@@ -3,7 +3,7 @@ import random
 import gym
 import numpy as np
 import torch
-
+import pickle
 
 def seed(seed):
     torch.manual_seed(seed)
@@ -56,6 +56,9 @@ class ReplayBuffer(object):
             "done": np.stack(dones).reshape(-1,1)
         }
 
+    def save_buffer(self):
+        with open('replay_buffer.pkl', 'wb') as f:
+            pickle.dump(self.storage, f)
 
 def evaluate_policy(env, policy, eval_episodes=10, max_timesteps=500):
     avg_reward = 0.
