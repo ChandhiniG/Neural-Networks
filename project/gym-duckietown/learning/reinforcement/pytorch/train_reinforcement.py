@@ -1,7 +1,7 @@
 import ast
 import argparse
 import logging
-
+import datetime
 import os
 import numpy as np
 
@@ -16,11 +16,12 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 def _train(args):   
-    if not os.path.exists("./results"):
-        os.makedirs("./results")
-    if not os.path.exists(args.model_dir):
-        os.makedirs(args.model_dir)
-        
+    # Creating timestamped folder to store all outputs of train
+    folder_name = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+    mydir = "./results/"+folder_name
+    if not os.path.exists(mydir):
+        os.makedirs(mydir)
+    
     # Launch the env with our helper function
     env = launch_env()
     print("Initialized environment")
@@ -75,8 +76,8 @@ def _train(args):
                     print("rewards at time {}: {}".format(total_timesteps, evaluations[-1]))
 
                     if args.save_models:
-                        policy.save(filename='ddpg', directory=args.model_dir)
-                    np.savez("./results/rewards.npz",evaluations)
+                        policy.save(filename='ddpg', directory=mydir)
+                    np.savez(mydir + "/rewards.npz",evaluations)
 
             # Reset environment
             env_counter += 1
@@ -117,7 +118,7 @@ def _train(args):
         timesteps_since_eval += 1
     
     print("Training done, about to save..")
-    policy.save(filename='ddpg', directory=args.model_dir)
+    policy.save(filename='ddpg', directory=mydir)
     print("Finished saving..should return now!")
 
 if __name__ == '__main__':
@@ -138,6 +139,5 @@ if __name__ == '__main__':
     parser.add_argument("--policy_freq", default=2, type=int)  # Frequency of delayed policy updates
     parser.add_argument("--env_timesteps", default=500, type=int)  # Frequency of delayed policy updates
     parser.add_argument("--replay_buffer_max_size", default=10000, type=int)  # Maximum number of steps to keep in the replay buffer
-    parser.add_argument('--model-dir', type=str, default='reinforcement/pytorch/models/')
 
     _train(parser.parse_args())
