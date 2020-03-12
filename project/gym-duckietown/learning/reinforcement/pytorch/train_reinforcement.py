@@ -6,7 +6,8 @@ import os
 import numpy as np
 
 # Duckietown Specific
-from reinforcement.pytorch.ddpg import DDPG, TD3
+from reinforcement.pytorch.ddpg import DDPG
+from reinforcement.pytorch.td3 import TD3
 from reinforcement.pytorch.utils import seed, evaluate_policy, ReplayBuffer
 from utils.env import launch_env
 from utils.wrappers import NormalizeWrapper, ImgWrapper, \
