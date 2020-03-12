@@ -81,62 +81,91 @@ class Replay():
 		 		torch.FloatTensor(reward).resize_((len(reward), 1)).cuda(),\
 				torch.FloatTensor(next_state).cuda(),\
 				torch.FloatTensor(not_done).resize_((len(not_done), 1)).cuda()
-
+    
 class Actor(nn.Module):
-	def __init__(self, state_dim, action_dim):
-		"""
-		Initialize the network
-		param: state_dim : Size of the state space
-		param: action_dim: Size of the action space
-		"""
-		super(Actor, self).__init__()
-		hl1 = 400
-		hl2 = 300
+    def __init__(self, action_dim, max_action):
+        super(ActorCNN, self).__init__()
 
-		self.fc1 = nn.Linear(state_dim, hl1)
-		self.fc2 = nn.Linear(hl1, hl2)
-		self.fc3 = nn.Linear(hl2, action_dim)
-		#self.fc1.weight.data.uniform_(-1/np.sqrt(state_dim), 1/np.sqrt(state_dim))
-		#self.fc2.weight.data.uniform_(-1/np.sqrt(hl1), 1/np.sqrt(hl1))
-		#self.fc3.weight.data.uniform_(-3e-3, 3e-3)
+        # ONLY TRU IN CASE OF DUCKIETOWN:
+        flat_size = 32 * 9 * 14
 
-	def forward(self, state):
-		"""
-		Define the forward pass
-		param: state: The state of the environment
-		"""
-		state = F.relu(self.fc1(state))
-		state = F.relu(self.fc2(state))
-		state = torch.tanh(self.fc3(state))
-		return state
+        self.lr = nn.LeakyReLU()
+        self.tanh = nn.Tanh()
+        self.sigm = nn.Sigmoid()
+
+        self.conv1 = nn.Conv2d(3, 32, 8, stride=2)
+        self.conv2 = nn.Conv2d(32, 32, 4, stride=2)
+        self.conv3 = nn.Conv2d(32, 32, 4, stride=2)
+        self.conv4 = nn.Conv2d(32, 32, 4, stride=1)
+
+        self.bn1 = nn.BatchNorm2d(32)
+        self.bn2 = nn.BatchNorm2d(32)
+        self.bn3 = nn.BatchNorm2d(32)
+        self.bn4 = nn.BatchNorm2d(32)
+
+        self.dropout = nn.Dropout(.5)
+
+        self.lin1 = nn.Linear(flat_size, 512)
+        self.lin2 = nn.Linear(512, action_dim)
+
+        self.max_action = max_action
+
+    def forward(self, x):
+        x = self.bn1(self.lr(self.conv1(x)))
+        x = self.bn2(self.lr(self.conv2(x)))
+        x = self.bn3(self.lr(self.conv3(x)))
+        x = self.bn4(self.lr(self.conv4(x)))
+        x = x.view(x.size(0), -1)  # flatten
+        x = self.dropout(x)
+        x = self.lr(self.lin1(x))
+
+        # this is the vanilla implementation
+        # but we're using a slightly different one
+        # x = self.max_action * self.tanh(self.lin2(x))
+
+        # because we don't want our duckie to go backwards
+        x = self.lin2(x)
+        x[:, 0] = self.max_action * self.sigm(x[:, 0])  # because we don't want the duckie to go backwards
+        x[:, 1] = self.tanh(x[:, 1])
+
+        return x
 
 class Critic(nn.Module):
-	def __init__(self, state_dim, action_dim):
-		"""
-		Initialize the critic
-		param: state_dim : Size of the state space
-		param: action_dim : Size of the action space
-		"""
-		super(Critic, self).__init__()
-		hl1 = 400
-		hl2 = 300
+    def __init__(self, action_dim):
+        super(CriticCNN, self).__init__()
 
-		self.fc1 = nn.Linear(state_dim, hl1)
-		self.fc2 = nn.Linear(hl1 + action_dim, hl2)
-		self.fc3 = nn.Linear(hl2, 1)
-		# self.fc1.weight.data.uniform_(-1/np.sqrt(state_dim), 1/np.sqrt(state_dim))
-		# self.fc2.weight.data.uniform_(-1/np.sqrt(hl1 + action_dim), 1/np.sqrt(hl1 + action_dim))
-		# self.fc3.weight.data.uniform_(-3e-3, 3e-3)
-		
-	def forward(self, state, action):
-		"""
-		Define the forward pass of the critic
-		"""
-		state = F.relu(self.fc1(state))
-		state = F.relu(self.fc2(torch.cat((state, action), 1)))
-		state = self.fc3(state)
-		return state
+        flat_size = 32 * 9 * 14
 
+        self.lr = nn.LeakyReLU()
+
+        self.conv1 = nn.Conv2d(3, 32, 8, stride=2)
+        self.conv2 = nn.Conv2d(32, 32, 4, stride=2)
+        self.conv3 = nn.Conv2d(32, 32, 4, stride=2)
+        self.conv4 = nn.Conv2d(32, 32, 4, stride=1)
+
+        self.bn1 = nn.BatchNorm2d(32)
+        self.bn2 = nn.BatchNorm2d(32)
+        self.bn3 = nn.BatchNorm2d(32)
+        self.bn4 = nn.BatchNorm2d(32)
+
+        self.dropout = nn.Dropout(.5)
+
+        self.lin1 = nn.Linear(flat_size, 256)
+        self.lin2 = nn.Linear(256 + action_dim, 128)
+        self.lin3 = nn.Linear(128, 1)
+
+    def forward(self, states, actions):
+        x = self.bn1(self.lr(self.conv1(states)))
+        x = self.bn2(self.lr(self.conv2(x)))
+        x = self.bn3(self.lr(self.conv3(x)))
+        x = self.bn4(self.lr(self.conv4(x)))
+        x = x.view(x.size(0), -1)  # flatten
+        x = self.lr(self.lin1(x))
+        x = self.lr(self.lin2(torch.cat([x, actions], 1)))  # c
+        x = self.lin3(x)
+
+        return x
+    
 class DDPG():
 	def __init__(
 			self,
