@@ -120,8 +120,8 @@ class CriticCNN(nn.Module):
 
 #         self.dropout = nn.Dropout(.5)
 
-        self.lin1 = nn.Linear(flat_size, 256)
-        self.lin2 = nn.Linear(256 + action_dim, 128)
+        self.lin1 = nn.Linear(flat_size + action_dim, 256)
+        self.lin2 = nn.Linear(256, 128)
         self.lin3 = nn.Linear(128, 1)
 
     def forward(self, states, actions):
