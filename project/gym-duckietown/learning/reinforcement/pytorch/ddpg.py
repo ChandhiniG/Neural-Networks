@@ -55,7 +55,7 @@ class ActorCNN(nn.Module):
         self.bn3 = nn.BatchNorm2d(32)
         self.bn4 = nn.BatchNorm2d(32)
 
-        self.dropout = nn.Dropout(.5)
+#         self.dropout = nn.Dropout(.5)
 
         self.lin1 = nn.Linear(flat_size, 512)
         self.lin2 = nn.Linear(512, action_dim)
@@ -68,7 +68,7 @@ class ActorCNN(nn.Module):
         x = self.bn3(self.lr(self.conv3(x)))
         x = self.bn4(self.lr(self.conv4(x)))
         x = x.view(x.size(0), -1)  # flatten
-        x = self.dropout(x)
+#         x = self.dropout(x)
         x = self.lr(self.lin1(x))
 
         # this is the vanilla implementation
@@ -118,7 +118,7 @@ class CriticCNN(nn.Module):
         self.bn3 = nn.BatchNorm2d(32)
         self.bn4 = nn.BatchNorm2d(32)
 
-        self.dropout = nn.Dropout(.5)
+#         self.dropout = nn.Dropout(.5)
 
         self.lin1 = nn.Linear(flat_size, 256)
         self.lin2 = nn.Linear(256 + action_dim, 128)
@@ -130,8 +130,8 @@ class CriticCNN(nn.Module):
         x = self.bn3(self.lr(self.conv3(x)))
         x = self.bn4(self.lr(self.conv4(x)))
         x = x.view(x.size(0), -1)  # flatten
-        x = self.lr(self.lin1(x))
-        x = self.lr(self.lin2(torch.cat([x, actions], 1)))  # c
+        x = self.lr(self.lin1(torch.cat([x, actions], 1)))
+        x = self.lr(self.lin2(x))  # c
         x = self.lin3(x)
 
         return x
