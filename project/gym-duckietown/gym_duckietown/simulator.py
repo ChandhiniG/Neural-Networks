@@ -518,7 +518,9 @@ class Simulator(gym.Env):
         self.cur_angle = propose_angle
 
         logger.info('Starting at %s %s' % (self.cur_pos, self.cur_angle))
-
+                         ###################################################################################################################
+        self.visited_tiles = {}
+        
         # Generate the first camera image
         obs = self.render_obs()
 
@@ -1339,14 +1341,16 @@ class Simulator(gym.Env):
         col_penalty = self._proximity_penalty2(pos, angle)
         
         i, j = self.get_grid_coords(pos)
-        tile = self._get_tile(i, j)
-        
+        tile = self._get_tile(i, j)["coords"]
+        print(tile)
         if tile in self.visited_tiles:
             self.visited_tiles[tile] += 1
-            tile_reward = min(-self.visited_tiles[tile],-30)
+            tile_reward = max(-self.visited_tiles[tile],-30)
         else:
-            self.visited_tiles[key] = 1
+            self.visited_tiles[tile] = 1
             tile_reward = 500
+        tile_reward_msg = " Tile reward value: "+str(tile_reward)
+        logger.info(tile_reward_msg)
         # Get the position relative to the right lane tangent
         try:
             lp = self.get_lane_pos2(pos, angle)
