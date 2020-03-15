@@ -1,7 +1,5 @@
 import torch
-import torchvision
 import torch.nn as nn
-from utils import *
 
 class ConvAutoEncoder(nn.Module):
     '''
@@ -13,22 +11,24 @@ class ConvAutoEncoder(nn.Module):
     def __init__(self):
         super().__init__()
         
-        # Encoder: Extracing encoder config from pretraiend model
-        model_pretrained = torchvision.models.vgg11_bn(pretrained=True)
-#         model_pretrained = freeze_weights(model_pretrained)
-        self.encoder = list(model_pretrained.children())[0][0:15] # extracting encoding layers of VGG
-        
-        # Encoder: Changing maxpool layer config to change return_indices to True
-        for i, layer in enumerate(self.encoder):
-            if type(layer) == torch.nn.modules.pooling.MaxPool2d:
-                kernel_size, stride, padding, dilation, ceil_mode = layer.kernel_size, layer.stride, layer.padding, layer.dilation, layer.ceil_mode
-                layer = torch.nn.modules.pooling.MaxPool2d(kernel_size, 
-                                                           stride=stride, 
-                                                           padding=padding, 
-                                                           dilation=dilation, 
-                                                           return_indices=True, 
-                                                           ceil_mode=ceil_mode)
-                self.encoder[i] = layer
+        # Encoder: (Important: Set return_indices = True for MaxPool2d layers)
+        self.encoder = nn.Sequential(
+                    nn.Conv2d(3, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),
+                    nn.BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+                    nn.ReLU(inplace=True),
+                    nn.MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, return_indices=True, ceil_mode=False),
+                    nn.Conv2d(64, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),
+                    nn.BatchNorm2d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+                    nn.ReLU(inplace=True),
+                    nn.MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, return_indices=True, ceil_mode=False),
+                    nn.Conv2d(128, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),
+                    nn.BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+                    nn.ReLU(inplace=True),
+                    nn.Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),
+                    nn.BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+                    nn.ReLU(inplace=True),
+                    nn.MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, return_indices=True, ceil_mode=False),
+            )
                 
         # Decoder: Defining decoder according to encoder structure
         self.decoder = nn.Sequential(
