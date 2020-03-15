@@ -71,6 +71,7 @@ def evaluate_policy(env, policy, eval_episodes=10, max_timesteps=500):
         done = False
         step = 0
         while not done and step < max_timesteps:
+            # print("********************* Sum:",np.sum(np.array(obs)))
             action = policy.predict(np.array(obs))
             print("action:",action)
             obs, reward, done, _ = env.step(action)
