@@ -311,6 +311,9 @@ class Simulator(gym.Env):
         self.last_action = np.array([0, 0])
         self.wheelVels = np.array([0, 0])
         
+        ###################################################################################################################
+        self.visited_tiles = {}
+        
     def _init_vlists(self):
         import pyglet
         # Create the vertex list for our road quad
@@ -339,6 +342,7 @@ class Simulator(gym.Env):
             1, -0.8, 1
         ]
         self.ground_vlist = pyglet.graphics.vertex_list(4, ('v3f', verts))
+        
 
     def reset(self):
         """
@@ -514,7 +518,9 @@ class Simulator(gym.Env):
         self.cur_angle = propose_angle
 
         logger.info('Starting at %s %s' % (self.cur_pos, self.cur_angle))
-
+                         ###################################################################################################################
+        self.visited_tiles = {}
+        
         # Generate the first camera image
         obs = self.render_obs()
 
@@ -1311,22 +1317,52 @@ class Simulator(gym.Env):
         gz = grid_height * tile_size - cp[1]
         return [gx, gy, gz], angle
 
+#     def compute_reward(self, pos, angle, speed):
+#         # Compute the collision avoidance penalty
+#         col_penalty = self._proximity_penalty2(pos, angle)
+
+#         # Get the position relative to the right lane tangent
+#         try:
+#             lp = self.get_lane_pos2(pos, angle)
+#         except NotInLane:
+#             reward = 40 * col_penalty
+#         else:
+
+#             # Compute the reward
+#             reward = (
+#                     +1.0 * speed * lp.dot_dir +
+#                     -10 * np.abs(lp.dist) +
+#                     +40 * col_penalty
+#             )
+#         return reward
+    
     def compute_reward(self, pos, angle, speed):
         # Compute the collision avoidance penalty
         col_penalty = self._proximity_penalty2(pos, angle)
-
+        
+        i, j = self.get_grid_coords(pos)
+        tile = self._get_tile(i, j)["coords"]
+        print(tile)
+        if tile in self.visited_tiles:
+            self.visited_tiles[tile] += 1
+            tile_reward = max(-self.visited_tiles[tile],-30)
+        else:
+            self.visited_tiles[tile] = 1
+            tile_reward = 500
+        tile_reward_msg = " Tile reward value: "+str(tile_reward)
+        logger.info(tile_reward_msg)
         # Get the position relative to the right lane tangent
         try:
             lp = self.get_lane_pos2(pos, angle)
         except NotInLane:
             reward = 40 * col_penalty
         else:
-
             # Compute the reward
             reward = (
                     +1.0 * speed * lp.dot_dir +
                     -10 * np.abs(lp.dist) +
-                    +40 * col_penalty
+                    +40 * col_penalty +
+                    +0.2*tile_reward
             )
         return reward
 
