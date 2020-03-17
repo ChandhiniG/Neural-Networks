@@ -34,7 +34,7 @@ torch.manual_seed(seed)
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-epochs    = int(50)
+epochs    = 15
 criterion = nn.MSELoss()
 model     = ConvAutoEncoder()
 model.apply(init_weights) #intiializes all weights (both conv and deconv layers)
@@ -94,14 +94,14 @@ def save_data():
 
 def load_val_data():
     val_data = []
+    ts = time.time()
     for i in range(num_batches):    
         # Loading the ith replay buffer
         batch_i = np.load('data/compressed'+str(i)+'.npz', allow_pickle=True)
         replay_buffer_val_i = batch_i['val']
-        print(type(replay_buffer_val_i))
-        print(replay_buffer_val_i.shape)
-        val_data += replay_buffer_val_i.storage
-    
+        batch = [replay_buffer_val_i[i,0] for i in range(val_batch_size)]
+        val_data += batch
+    print(f'Validation set of {len(val_data)} number of images loaded in {time.time() - ts} seconds')
     return val_data
 
 def train():
@@ -127,21 +127,21 @@ def train():
             # Making batch
             batch_i = np.load('data/compressed'+str(i)+'.npz', allow_pickle=True)
             replay_buffer_train = batch_i['train']
-            obs_batch = [el[0] for el in replay_buffer_train.storage]
+            batch = [replay_buffer_train[j,0] for j in range(train_batch_size)]
 
 #             if epoch == 0:
 #                 fig, axs = plt.subplots(3,2,figsize=(9,7))
 #                 axs = axs.flatten()
 #                 for q in range(6):
-#                     img = obs_batch[q]
-#                     img = np.transpose(img, (1, 2, 0))
+#                     img = batch[q]
+#                     img = np.transpose(img, (2, 1, 0))
 #                     axs[q].imshow(img)
 #                 plt.savefig('sample_batch.png', dpi=300)
 #                 plt.close()
 #                 print('img.shape = ', img.shape)
 #                 print('np.sum(img) = ', np.sum(img))
 
-            obs = np.stack(obs_batch, axis=0)
+            obs = np.stack(batch, axis=0)
             obs = torch.from_numpy(obs).float()
             obs = obs.to(device)
             # Feed forward
@@ -157,7 +157,7 @@ def train():
         
         losses.append(np.mean(np.array(loss_batch)))
         val_losses.append(val(val_data))
-        print("Finish epoch {}, time elapsed {:.2f}, loss: {:.3f}, val_loss{:.3f}".format(epoch, time.time() - ts, losses[-1], val_losses[-1]))
+        print("Finish epoch {}, time elapsed {:.2f}, loss: {:.3f}, val_loss: {:.3f}".format(epoch, time.time() - ts, losses[-1], val_losses[-1]))
         
         if epoch%5==0 or val_losses[-1] < min_loss:
             save_model(model, model_dir, 'model_best')
@@ -180,7 +180,7 @@ def val(val_data):
     for i in range(0, num_val_images, val_batch_size):
         # Making batch
         batch_indices = shuffled_indices[i: i+val_batch_size]
-        obs_batch     = [val_data[j][0] for j in batch_indices]
+        obs_batch     = [val_data[j] for j in batch_indices]
         obs           = np.stack(obs_batch, axis=0)
         obs           = torch.from_numpy(obs).float()
         obs           = obs.to(device)
