@@ -81,8 +81,9 @@ for i in range(1000):
     num_train_images = int(40)
     replay_buffer = get_train_data(num_train_images)
     num_val_images = int(10)
+    print(len(replay_buffer.storage))
     replay_buffer_val = get_train_data(num_val_images)
-    np.savez_compressed('data/compressed'+str(i), val=replay_buffer_val, train=replay_buffer)
+    np.savez_compressed('data/compressed'+str(i), val=replay_buffer_val.storage, train=replay_buffer.storage)
 
 def train():
     
