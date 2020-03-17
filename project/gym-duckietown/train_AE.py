@@ -34,7 +34,7 @@ torch.manual_seed(seed)
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-epochs    = int(100)
+epochs    = int(50)
 criterion = nn.MSELoss()
 model     = ConvAutoEncoder()
 model.apply(init_weights) #intiializes all weights (both conv and deconv layers)
@@ -54,6 +54,9 @@ env = ActionWrapper(env)
 env = DtRewardWrapper(env)
 print("Initialized Wrappers")
 
+train_batch_size = 40
+val_batch_size   = 10
+num_batches      = 1000
 
 def get_train_data(size):
     # Launch the env with our helper function
@@ -77,49 +80,66 @@ def get_train_data(size):
     print('End: Collecting train data. Time taken: {:.2f}'.format(time.time() - ts))
     return replay_buffer
 
-for i in range(1000):    
-    num_train_images = int(40)
-    replay_buffer = get_train_data(num_train_images)
-    num_val_images = int(10)
-    print(len(replay_buffer.storage))
-    replay_buffer_val = get_train_data(num_val_images)
-    np.savez_compressed('data/compressed'+str(i), val=replay_buffer_val.storage, train=replay_buffer.storage)
+def save_data():
+    '''
+    Save images from environment so we can train on it later.
+    '''
+    for i in range(num_batches):    
+        num_train_images  = int(train_batch_size)
+        replay_buffer     = get_train_data(num_train_images)
+        num_val_images    = int(val_batch_size)
+        replay_buffer_val = get_train_data(num_val_images)
+        # Saving val and train images to a compressed numpy file
+        np.savez_compressed('data/compressed'+str(i), val=replay_buffer_val.storage, train=replay_buffer.storage)
+
+def load_val_data():
+    val_data = []
+    for i in range(num_batches):    
+        # Loading the ith replay buffer
+        batch_i = np.load('data/compressed'+str(i)+'.npz', allow_pickle=True)
+        replay_buffer_val_i = batch_i['val']
+        print(type(replay_buffer_val_i))
+        print(replay_buffer_val_i.shape)
+        val_data += replay_buffer_val_i.storage
+    
+    return val_data
 
 def train():
-    
-    
     model_dir = "./CAE_models/"
+    data_dir  = "./data/"
     if not os.path.exists(model_dir):
         os.makedirs(model_dir)
 
-    losses = []
-    val_losses = []
-    min_loss = float('inf')
-    batch_size = 20
+    losses      = []
+    val_losses  = []
+    min_loss    = float('inf')
+    batch_size  = train_batch_size
+    val_data    = load_val_data()
     
     for epoch in range(epochs):
         model.train()
         loss_batch = []
-        shuffled_indices = list(range(num_train_images))
+        shuffled_indices = list(range(num_batches))
         random.shuffle(shuffled_indices)
         ts = time.time()
-        for i in range(0, num_train_images, batch_size):
+        for i in shuffled_indices:
             optimizer.zero_grad()
             # Making batch
-            batch_indices = shuffled_indices[i: i+batch_size]
-            obs_batch = [replay_buffer.storage[j][0] for j in batch_indices]
-            if epoch == 0:
-                fig, axs = plt.subplots(3,2,figsize=(9,7))
-                axs = axs.flatten()
-                for q in range(6):
-                    img = obs_batch[q]
-                    img = np.transpose(img, (1, 2, 0))
-                    axs[q].imshow(img)
-                plt.savefig('sample_batch.png', dpi=300)
-                plt.close()
-                print('img.shape = ', img.shape)
-                print('np.sum(img) = ', np.sum(img))
-                
+            batch_i = np.load('data/compressed'+str(i)+'.npz', allow_pickle=True)
+            replay_buffer_train = batch_i['train']
+            obs_batch = [el[0] for el in replay_buffer_train.storage]
+
+#             if epoch == 0:
+#                 fig, axs = plt.subplots(3,2,figsize=(9,7))
+#                 axs = axs.flatten()
+#                 for q in range(6):
+#                     img = obs_batch[q]
+#                     img = np.transpose(img, (1, 2, 0))
+#                     axs[q].imshow(img)
+#                 plt.savefig('sample_batch.png', dpi=300)
+#                 plt.close()
+#                 print('img.shape = ', img.shape)
+#                 print('np.sum(img) = ', np.sum(img))
 
             obs = np.stack(obs_batch, axis=0)
             obs = torch.from_numpy(obs).float()
@@ -132,36 +152,43 @@ def train():
             loss.backward()
             optimizer.step()
             
-#             if i%500 == 0:
-#                 print("epoch{}, batch: {}, loss: {}".format(epoch, i, loss_batch[-1]))
+            if i%100 == 0:
+                print("epoch{}, batch: {}, loss: {}".format(epoch, i, loss_batch[-1]))
         
         losses.append(np.mean(np.array(loss_batch)))
-        val_losses.append(val())
+        val_losses.append(val(val_data))
         print("Finish epoch {}, time elapsed {:.2f}, loss: {:.3f}, val_loss{:.3f}".format(epoch, time.time() - ts, losses[-1], val_losses[-1]))
         
-        if epoch%50==0 or losses[-1] < min_loss:
+        if epoch%5==0 or val_losses[-1] < min_loss:
             save_model(model, model_dir, 'model_best')
             min_loss = val_losses[-1]
     
-    np.save("CAE_losses",np.array(losses))
+    np.save("CAE_losses_train",np.array(losses))
+    np.save("CAE_losses_val",np.array(val_losses))
     save_model(model, model_dir, 'model_final')
 
-def val():
-    batch_size = 10
+def val(val_data):
+    '''
+    :param val_data: list of val data
+    '''
     model.eval()
-    val_batch = []
-    shuffled_indices = list(range(num_val_images))
-    for i in range(0, num_val_images, batch_size):
+    
+    val_batch         = []
+    num_val_images    = len(val_data)
+    shuffled_indices  = list(range(num_val_images))
+    
+    for i in range(0, num_val_images, val_batch_size):
         # Making batch
-        batch_indices = shuffled_indices[i: i+batch_size]
-        obs_batch = [replay_buffer.storage[j][0] for j in batch_indices]   
-        obs = np.stack(obs_batch, axis=0)
-        obs = torch.from_numpy(obs).float()
-        obs = obs.to(device)
+        batch_indices = shuffled_indices[i: i+val_batch_size]
+        obs_batch     = [val_data[j][0] for j in batch_indices]
+        obs           = np.stack(obs_batch, axis=0)
+        obs           = torch.from_numpy(obs).float()
+        obs           = obs.to(device)
         # Feed forward
-        output = model(obs)
-        loss   = criterion(output, obs)
+        output        = model(obs)
+        loss          = criterion(output, obs)
         val_batch.append(loss.item())
+    
     return np.mean(np.array(val_batch))
 
 if __name__ == '__main__':
