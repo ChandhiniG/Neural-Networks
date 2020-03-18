@@ -14,15 +14,15 @@ import numpy as np
 import random
 import matplotlib.pyplot as plt
 
-# Duckietown Specific
-from learning.reinforcement.pytorch.ddpg import DDPG
-from learning.reinforcement.pytorch.utils import seed, evaluate_policy, ReplayBuffer
-from learning.utils.env import launch_env
-from learning.utils.wrappers import NormalizeWrapper, ImgWrapper, \
-    DtRewardWrapper, ActionWrapper, ResizeWrapper
+# # Duckietown Specific
+# from learning.reinforcement.pytorch.ddpg import DDPG
+# from learning.reinforcement.pytorch.utils import seed, evaluate_policy, ReplayBuffer
+# from learning.utils.env import launch_env
+# from learning.utils.wrappers import NormalizeWrapper, ImgWrapper, \
+#     DtRewardWrapper, ActionWrapper, ResizeWrapper
 
 # Model Specific
-from model_CAE import ConvAutoEncoder
+from model_CAE_2 import ConvAutoEncoder
 from utils import init_weights, save_model, load_model
 
 # Setting seed for reproducibility
@@ -43,16 +43,16 @@ optimizer = optim.Adam(model.parameters(), lr=2e-4)
 model.to(device)
 criterion.to(device)
 
-env = launch_env()
-print("Initialized environment")
+# env = launch_env()
+# print("Initialized environment")
 
-# Wrappers
-env = ResizeWrapper(env)
-env = NormalizeWrapper(env)
-env = ImgWrapper(env) # to make the images from 160x120x3 into 3x160x120
-env = ActionWrapper(env)
-env = DtRewardWrapper(env)
-print("Initialized Wrappers")
+# # Wrappers
+# env = ResizeWrapper(env)
+# env = NormalizeWrapper(env)
+# env = ImgWrapper(env) # to make the images from 160x120x3 into 3x160x120
+# env = ActionWrapper(env)
+# env = DtRewardWrapper(env)
+# print("Initialized Wrappers")
 
 train_batch_size = 40
 val_batch_size   = 10
@@ -105,7 +105,7 @@ def load_val_data():
     return val_data
 
 def train():
-    model_dir = "./CAE_models/"
+    model_dir = "./CAE_models_2/"
     data_dir  = "./data/"
     if not os.path.exists(model_dir):
         os.makedirs(model_dir)
@@ -163,8 +163,8 @@ def train():
             save_model(model, model_dir, 'model_best')
             min_loss = val_losses[-1]
     
-    np.save("CAE_losses_train",np.array(losses))
-    np.save("CAE_losses_val",np.array(val_losses))
+    np.save(model_dir + "CAE_losses_train",np.array(losses))
+    np.save(model_dir + "CAE_losses_val",np.array(val_losses))
     save_model(model, model_dir, 'model_final')
 
 def val(val_data):

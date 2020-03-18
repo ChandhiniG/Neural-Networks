@@ -22,13 +22,13 @@ import matplotlib.pyplot as plt
 #     DtRewardWrapper, ActionWrapper, ResizeWrapper
 
 # Model Specific
-from model_CAE import ConvAutoEncoder
+from model_CAE_2 import ConvAutoEncoder
 from utils import load_model
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 model = ConvAutoEncoder()
-model = load_model(model, './CAE_models/model_best.pth')
+model = load_model(model, './CAE_models_2/model_best.pth')
 model = model.to(device)
 model.eval()
 
@@ -47,7 +47,7 @@ print('input_batch.shape = ', input_batch.shape)
 # Feed forward
 output, _, _ = model.forward_encoder(input_batch)
 # Passing output of encoder through maxpool to further reduce dimensionality
-maxpool      = nn.MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False)
-output       = maxpool(output)
+# maxpool      = nn.MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False)
+# output       = maxpool(output)
 output       = output.view(batch_size, -1)
 print('output.shape = ', output.shape)
